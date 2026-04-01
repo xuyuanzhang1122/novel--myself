@@ -7,6 +7,9 @@
     ".": "./src/index.ts",
     "./client": "./src/client.ts"
   },
+  "peerDependencies": {
+    "next": ">=15"
+  },
   "dependencies": {
     "@prisma/client": "^5.22.0",
     "github-slugger": "^2.0.0",
