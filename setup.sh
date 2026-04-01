@@ -22,6 +22,15 @@ OS_FAMILY=""
 INSTALL_DIR=""
 REPO_URL=""
 
+# Open fd 3 from /dev/tty for interactive input.
+# This keeps stdin (fd 0) intact for bash to continue reading the script
+# when piped via curl | bash.
+if [ ! -t 0 ]; then
+  exec 3</dev/tty || error "Cannot open /dev/tty. Run: curl -fsSL <url> -o setup.sh && bash setup.sh"
+else
+  exec 3<&0
+fi
+
 # ─── helpers ────────────────────────────────────────────────────────
 
 require_command() {
@@ -120,7 +129,8 @@ ensure_pnpm() {
 
 choose_dir() {
   step "Choose installation directory"
-  read -r -p "Install to [default: ~/xu-novel]: " INSTALL_DIR
+  printf "Install to [default: ~/xu-novel]: "
+  read -r INSTALL_DIR <&3
   INSTALL_DIR="${INSTALL_DIR:-$HOME/xu-novel}"
 }
 
@@ -150,11 +160,11 @@ prompt_value() {
   local result=""
   if [ -n "$default_value" ]; then
     printf "%s [%s]: " "$prompt" "$default_value"
-    read -r result
+    read -r result <&3
     printf '%s' "${result:-$default_value}"
   else
     printf "%s: " "$prompt"
-    read -r result
+    read -r result <&3
     printf '%s' "$result"
   fi
 }
@@ -253,12 +263,6 @@ print_summary() {
 # ─── main ───────────────────────────────────────────────────────────
 
 main() {
-  # When piped via curl, stdin is the download stream.
-  # Reattach stdin to the terminal so interactive prompts work.
-  if [ ! -t 0 ]; then
-    exec < /dev/tty
-  fi
-
   printf "${CYAN}xu-novel setup${NC}\n"
   printf "Private novel reading & publishing platform\n\n"
 
