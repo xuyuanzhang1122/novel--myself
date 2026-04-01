@@ -152,6 +152,13 @@ clone_and_install() {
 
   info "Installing dependencies..."
   pnpm install
+
+  # pnpm 10+ blocks postinstall scripts by default; approve prisma so it can generate the client
+  if pnpm approve-builds --help >/dev/null 2>&1; then
+    info "Approving build scripts for prisma..."
+    pnpm approve-builds prisma @prisma/client @prisma/engines sharp 2>/dev/null || true
+    pnpm install
+  fi
 }
 
 prompt_value() {
