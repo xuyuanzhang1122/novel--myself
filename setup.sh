@@ -159,11 +159,11 @@ prompt_value() {
   local default_value="${2:-}"
   local result=""
   if [ -n "$default_value" ]; then
-    printf "%s [%s]: " "$prompt" "$default_value"
+    printf "%s [%s]: " "$prompt" "$default_value" >&2
     read -r result <&3
     printf '%s' "${result:-$default_value}"
   else
-    printf "%s: " "$prompt"
+    printf "%s: " "$prompt" >&2
     read -r result <&3
     printf '%s' "$result"
   fi
@@ -182,7 +182,7 @@ configure_env() {
 
   printf "\n"
   info "xu-novel uses a built-in admin login (no Supabase needed)."
-  info "Set your admin credentials below.\n"
+  info "Set your admin credentials below."
 
   admin_email="$(prompt_value "Admin email (ADMIN_EMAIL)" "admin@local")"
   admin_password="$(prompt_value "Admin password (ADMIN_PASSWORD)" "novel123456")"
