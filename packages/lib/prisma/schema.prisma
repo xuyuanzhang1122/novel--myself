@@ -1,0 +1,123 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model AdminUser {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  createdAt DateTime @default(now())
+}
+
+model Novel {
+  id          String   @id @default(uuid())
+  title       String
+  slug        String   @unique
+  summary     String?
+  coverUrl    String?
+  backdropUrl String?
+  status      String   @default("draft")
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  chapters         Chapter[]
+  novelTags        NovelTag[]
+  readingHistories ReadingHistory[]
+}
+
+model Chapter {
+  id              String   @id @default(uuid())
+  novelId         String
+  novel           Novel    @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  title           String
+  slug            String
+  markdownContent String
+  htmlCache       String?
+  wordCount       Int      @default(0)
+  chapterOrder    Int      @default(1)
+  status          String   @default("draft")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  readingHistories ReadingHistory[]
+
+  @@unique([novelId, slug])
+}
+
+model Tag {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  createdAt DateTime   @default(now())
+  novelTags NovelTag[]
+}
+
+model NovelTag {
+  novelId String
+  novel   Novel  @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  tagId   String
+  tag     Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([novelId, tagId])
+}
+
+model SiteSettings {
+  id                    String  @id
+  homepageBackgroundUrl String?
+  brandLine             String?
+  heroEyebrow           String?
+  heroTitle             String?
+  heroPrimaryAction     String?
+  heroSecondaryAction   String?
+  defaultTheme          String  @default("paper")
+  defaultFont           String  @default("serif")
+  accentHex             String?
+}
+
+model ReaderPreference {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  fontFamily     String   @default("serif")
+  fontScale      Float    @default(1.0)
+  pageWidth      String   @default("standard")
+  theme          String   @default("paper")
+  backgroundTone String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model ReadingHistory {
+  id               String   @id @default(uuid())
+  userId           String
+  novelId          String
+  novel            Novel    @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  chapterId        String
+  chapter          Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  anchorId         String?
+  fallbackProgress Float?
+  updatedAt        DateTime @updatedAt
+
+  @@unique([userId, novelId])
+}
+
+model ImportJob {
+  id                String   @id @default(uuid())
+  fileName          String
+  sourceDocUrl      String?
+  convertedMarkdown String
+  imageManifest     String   @default("{}")
+  status            String   @default("pending")
+  errorMessage      String?
+  createdAt         DateTime @default(now())
+}
+
+model MediaAsset {
+  id        String   @id @default(uuid())
+  label     String
+  assetType String   @default("image")
+  fileUrl   String
+  createdAt DateTime @default(now())
+}

@@ -1,0 +1,27 @@
+.next
+.turbo
+node_modules
+.vercel
+.env
+.env.local
+.env.*.local
+pnpm-lock.yaml
+
+# Database
+*.db
+*.db-journal
+
+# Uploaded media
+apps/*/public/media/
+apps/*/public/uploads/
+
+# OS files
+.DS_Store
+
+# Build artifacts
+*.tsbuildinfo
+
+# Temp files
+check.log
+fix.js
+script.py

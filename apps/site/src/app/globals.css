@@ -1,0 +1,5 @@
+@import "@xu-novel/ui/styles.css";
+
+html {
+  scroll-behavior: smooth;
+}

@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --background: 35 38% 96%;
+    --foreground: 28 18% 12%;
+  }
+
+  .dark {
+    color-scheme: dark;
+    --background: 28 16% 7%;
+    --foreground: 40 18% 92%;
+  }
+
+  * {
+    @apply border-stone-200;
+  }
+
+  body {
+    @apply bg-[hsl(var(--background))] text-[hsl(var(--foreground))] antialiased;
+    background-image:
+      radial-gradient(circle at top, rgba(245, 158, 11, 0.07), transparent 28%),
+      linear-gradient(180deg, rgba(255, 251, 235, 0.35), transparent 22%);
+  }
+
+  .paper-noise {
+    background-image:
+      linear-gradient(135deg, rgba(255, 251, 235, 0.95), rgba(245, 236, 211, 0.9)),
+      url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22240%22 height=%22240%22 viewBox=%220 0 240 240%22%3E%3Cfilter id=%22n%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.78%22 numOctaves=%222%22 stitchTiles=%22stitch%22 /%3E%3C/filter%3E%3Crect width=%22240%22 height=%22240%22 filter=%22url(%23n)%22 opacity=%220.05%22 /%3E%3C/svg%3E");
+  }
+
+  .prose-reader {
+    @apply max-w-none;
+    color: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    text-align: justify;
+    hanging-punctuation: first;
+  }
+
+  .prose-reader p {
+    text-indent: 2em;
+    margin-top: 0;
+    margin-bottom: 1.1em;
+  }
+
+  .prose-reader h1,
+  .prose-reader h2,
+  .prose-reader h3 {
+    @apply font-serif;
+    color: inherit;
+  }
+
+  .prose-reader blockquote {
+    @apply border-l-2 border-stone-400 pl-4 italic text-stone-600;
+  }
+}

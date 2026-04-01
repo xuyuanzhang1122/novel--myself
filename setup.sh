@@ -1,0 +1,268 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ─── xu-novel one-click setup ───────────────────────────────────────
+# curl -fsSL https://raw.githubusercontent.com/xuyuanzhang1122/novel--myself/main/setup.sh | bash
+# ────────────────────────────────────────────────────────────────────
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+DEFAULT_REPO_URL="${XU_NOVEL_REPO_URL:-https://github.com/xuyuanzhang1122/novel--myself.git}"
+
+info()  { printf "${GREEN}[INFO]${NC}  %s\n" "$1"; }
+warn()  { printf "${YELLOW}[WARN]${NC}  %s\n" "$1"; }
+error() { printf "${RED}[ERROR]${NC} %s\n" "$1"; exit 1; }
+step()  { printf "\n${CYAN}── %s ──${NC}\n" "$1"; }
+
+OS_FAMILY=""
+INSTALL_DIR=""
+REPO_URL=""
+
+# ─── helpers ────────────────────────────────────────────────────────
+
+require_command() {
+  command -v "$1" >/dev/null 2>&1 || error "Missing required command: $1"
+}
+
+detect_os() {
+  step "Detecting operating system"
+  local kernel
+  kernel="$(uname -s)"
+
+  case "$kernel" in
+    Darwin) OS_FAMILY="macos" ;;
+    Linux)
+      if grep -qi microsoft /proc/version 2>/dev/null; then
+        OS_FAMILY="wsl"
+      else
+        OS_FAMILY="linux"
+      fi
+      ;;
+    *) error "Unsupported OS: $kernel (macOS / Linux / WSL only)" ;;
+  esac
+
+  info "OS detected: $OS_FAMILY"
+}
+
+load_nvm() {
+  export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+  if [ -s "$NVM_DIR/nvm.sh" ]; then
+    # shellcheck disable=SC1090
+    . "$NVM_DIR/nvm.sh"
+  fi
+}
+
+ensure_node() {
+  step "Checking Node.js"
+  load_nvm
+
+  local current_major=""
+  if command -v node >/dev/null 2>&1; then
+    current_major="$(node -v | sed -E 's/^v([0-9]+).*/\1/')"
+  fi
+
+  if [ -n "$current_major" ] && [ "$current_major" -ge 20 ]; then
+    info "Node.js $(node -v) OK"
+    return
+  fi
+
+  warn "Node.js >= 20 required, installing..."
+
+  case "$OS_FAMILY" in
+    macos)
+      if command -v brew >/dev/null 2>&1; then
+        brew install node@20
+        export PATH="/opt/homebrew/opt/node@20/bin:/usr/local/opt/node@20/bin:$PATH"
+      else
+        error "Homebrew not found. Install it first: https://brew.sh"
+      fi
+      ;;
+    linux|wsl)
+      require_command curl
+      export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+      if [ ! -s "$NVM_DIR/nvm.sh" ]; then
+        curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+      fi
+      load_nvm
+      command -v nvm >/dev/null 2>&1 || error "nvm installation failed"
+      nvm install 20
+      nvm use 20
+      ;;
+  esac
+
+  require_command node
+  info "Node.js $(node -v) installed"
+}
+
+ensure_pnpm() {
+  step "Checking pnpm"
+  if command -v pnpm >/dev/null 2>&1; then
+    info "pnpm $(pnpm -v) OK"
+    return
+  fi
+
+  info "Installing pnpm..."
+  if command -v corepack >/dev/null 2>&1; then
+    corepack enable
+    corepack prepare pnpm@latest --activate
+  else
+    npm install -g pnpm
+  fi
+  require_command pnpm
+  info "pnpm $(pnpm -v) installed"
+}
+
+# ─── interactive setup ──────────────────────────────────────────────
+
+choose_dir() {
+  step "Choose installation directory"
+  read -r -p "Install to [default: ~/xu-novel]: " INSTALL_DIR
+  INSTALL_DIR="${INSTALL_DIR:-$HOME/xu-novel}"
+}
+
+clone_and_install() {
+  step "Cloning and installing"
+  require_command git
+  REPO_URL="$DEFAULT_REPO_URL"
+
+  if [ -d "$INSTALL_DIR/.git" ]; then
+    info "Directory already exists, pulling latest..."
+    cd "$INSTALL_DIR"
+    git pull --rebase
+  elif [ -e "$INSTALL_DIR" ] && [ -n "$(ls -A "$INSTALL_DIR" 2>/dev/null)" ]; then
+    error "Target directory is not empty: $INSTALL_DIR"
+  else
+    git clone "$REPO_URL" "$INSTALL_DIR"
+    cd "$INSTALL_DIR"
+  fi
+
+  info "Installing dependencies..."
+  pnpm install
+}
+
+prompt_value() {
+  local prompt="$1"
+  local default_value="${2:-}"
+  local result=""
+  if [ -n "$default_value" ]; then
+    read -r -p "$prompt [$default_value]: " result
+    printf '%s' "${result:-$default_value}"
+  else
+    read -r -p "$prompt: " result
+    printf '%s' "$result"
+  fi
+}
+
+configure_env() {
+  step "Configuring environment"
+  cd "$INSTALL_DIR"
+
+  if [ -f .env.local ]; then
+    warn ".env.local already exists, skipping. Delete it and re-run to reconfigure."
+    return
+  fi
+
+  local admin_email admin_password site_revalidate_secret
+
+  printf "\n"
+  info "xu-novel uses a built-in admin login (no Supabase needed)."
+  info "Set your admin credentials below.\n"
+
+  admin_email="$(prompt_value "Admin email (ADMIN_EMAIL)" "admin@local")"
+  admin_password="$(prompt_value "Admin password (ADMIN_PASSWORD)" "novel123456")"
+
+  if command -v openssl >/dev/null 2>&1; then
+    site_revalidate_secret="$(openssl rand -base64 32 | tr -d '\n')"
+  else
+    site_revalidate_secret="$(node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))")"
+  fi
+
+  cat > .env.local <<EOF
+# xu-novel environment configuration
+# Generated by setup.sh on $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+# Admin credentials
+ADMIN_EMAIL=${admin_email}
+ADMIN_PASSWORD=${admin_password}
+
+# Site URLs
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_ADMIN_URL=http://localhost:3001
+
+# Cross-site cache revalidation
+SITE_REVALIDATE_URL=http://localhost:3000/api/revalidate
+SITE_REVALIDATE_SECRET=${site_revalidate_secret}
+
+# Cookie domain (leave empty for localhost, set to .yourdomain.com in production)
+NEXT_PUBLIC_AUTH_COOKIE_DOMAIN=
+EOF
+
+  info ".env.local created"
+}
+
+init_database() {
+  step "Initializing database"
+  cd "$INSTALL_DIR"
+
+  info "Running Prisma db push to create SQLite database..."
+  pnpm --filter @xu-novel/lib exec prisma db push --skip-generate 2>/dev/null || \
+    npx --prefix packages/lib prisma db push --skip-generate
+
+  info "Generating Prisma client..."
+  pnpm --filter @xu-novel/lib exec prisma generate 2>/dev/null || \
+    npx --prefix packages/lib prisma generate
+
+  info "Database initialized at packages/lib/prisma/dev.db"
+}
+
+verify_build() {
+  step "Verifying build"
+  cd "$INSTALL_DIR"
+  pnpm build
+  info "Build successful"
+}
+
+print_summary() {
+  printf "\n"
+  printf "${GREEN}════════════════════════════════════════════════════${NC}\n"
+  printf "${GREEN}  xu-novel installed successfully!${NC}\n"
+  printf "${GREEN}════════════════════════════════════════════════════${NC}\n"
+  printf "\n"
+  printf "  Directory:  %s\n" "$INSTALL_DIR"
+  printf "  Database:   SQLite (packages/lib/prisma/dev.db)\n"
+  printf "\n"
+  printf "  ${CYAN}Start dev server:${NC}\n"
+  printf "    cd %s && pnpm dev\n" "$INSTALL_DIR"
+  printf "\n"
+  printf "  ${CYAN}Access:${NC}\n"
+  printf "    Site (reader):  http://localhost:3000\n"
+  printf "    Admin (editor): http://localhost:3001\n"
+  printf "\n"
+  printf "  ${CYAN}Default login:${NC}\n"
+  printf "    Email:    value from ADMIN_EMAIL in .env.local\n"
+  printf "    Password: value from ADMIN_PASSWORD in .env.local\n"
+  printf "\n"
+}
+
+# ─── main ───────────────────────────────────────────────────────────
+
+main() {
+  printf "${CYAN}xu-novel setup${NC}\n"
+  printf "Private novel reading & publishing platform\n\n"
+
+  detect_os
+  ensure_node
+  ensure_pnpm
+  choose_dir
+  clone_and_install
+  configure_env
+  init_database
+  verify_build
+  print_summary
+}
+
+main "$@"
