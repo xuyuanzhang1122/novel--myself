@@ -120,8 +120,7 @@ ensure_pnpm() {
 
 choose_dir() {
   step "Choose installation directory"
-  printf "Install to [default: ~/xu-novel]: "
-  read -r INSTALL_DIR </dev/tty
+  read -r -p "Install to [default: ~/xu-novel]: " INSTALL_DIR
   INSTALL_DIR="${INSTALL_DIR:-$HOME/xu-novel}"
 }
 
@@ -151,11 +150,11 @@ prompt_value() {
   local result=""
   if [ -n "$default_value" ]; then
     printf "%s [%s]: " "$prompt" "$default_value"
-    read -r result </dev/tty
+    read -r result
     printf '%s' "${result:-$default_value}"
   else
     printf "%s: " "$prompt"
-    read -r result </dev/tty
+    read -r result
     printf '%s' "$result"
   fi
 }
@@ -254,6 +253,12 @@ print_summary() {
 # ─── main ───────────────────────────────────────────────────────────
 
 main() {
+  # When piped via curl, stdin is the download stream.
+  # Reattach stdin to the terminal so interactive prompts work.
+  if [ ! -t 0 ]; then
+    exec < /dev/tty
+  fi
+
   printf "${CYAN}xu-novel setup${NC}\n"
   printf "Private novel reading & publishing platform\n\n"
 
