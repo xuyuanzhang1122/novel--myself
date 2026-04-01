@@ -120,7 +120,8 @@ ensure_pnpm() {
 
 choose_dir() {
   step "Choose installation directory"
-  read -r -p "Install to [default: ~/xu-novel]: " INSTALL_DIR
+  printf "Install to [default: ~/xu-novel]: "
+  read -r INSTALL_DIR </dev/tty
   INSTALL_DIR="${INSTALL_DIR:-$HOME/xu-novel}"
 }
 
@@ -149,10 +150,12 @@ prompt_value() {
   local default_value="${2:-}"
   local result=""
   if [ -n "$default_value" ]; then
-    read -r -p "$prompt [$default_value]: " result
+    printf "%s [%s]: " "$prompt" "$default_value"
+    read -r result </dev/tty
     printf '%s' "${result:-$default_value}"
   else
-    read -r -p "$prompt: " result
+    printf "%s: " "$prompt"
+    read -r result </dev/tty
     printf '%s' "$result"
   fi
 }
