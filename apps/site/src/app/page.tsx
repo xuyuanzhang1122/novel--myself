@@ -30,9 +30,6 @@ export default async function HomePage() {
             <Link href="/login">
               <Button variant="ghost">登录</Button>
             </Link>
-            <Link href="/login#register">
-              <Button variant="secondary">注册</Button>
-            </Link>
           </div>
         </header>
 
@@ -67,8 +64,8 @@ export default async function HomePage() {
                     登录后进入书库
                   </Button>
                 </Link>
-                <Link href="/login#register">
-                  <Button variant="secondary">邮箱注册</Button>
+                <Link href="#preview-library">
+                  <Button variant="secondary">先看首页预览</Button>
                 </Link>
               </div>
             </div>
@@ -88,7 +85,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <section className="space-y-6">
+        <section className="space-y-6" id="preview-library">
           <SectionHeading
             eyebrow="预览书架"
             title="已发布作品预览"
