@@ -72,7 +72,7 @@ export function ImportDocxForm() {
           </span>
         </label>
         <p className="text-sm leading-7 text-stone-400">
-          浏览器端完成 `.docx` 解析和图片上传，本地存储。
+          浏览器端完成 `.docx` 解析，并把图片上传到对象存储。
         </p>
         {error ? <p className="text-sm text-amber-300">{error}</p> : null}
         {messages.length > 0 ? (

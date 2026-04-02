@@ -34,22 +34,45 @@ export async function extractDocx(arrayBuffer: ArrayBuffer) {
 }
 
 export async function uploadBase64Images(images: Record<string, string>) {
+  const entries = Object.entries(images);
+  if (entries.length === 0) return {};
+
+  const formData = new FormData();
+  entries.forEach(([name, dataUrl]) => {
+    const match = dataUrl.match(/^data:([^;,]+);base64,(.+)$/);
+    if (!match) {
+      throw new Error(`无效的图片数据：${name}`);
+    }
+    const mimeType = match[1] || "application/octet-stream";
+    const buffer = Uint8Array.from(atob(match[2]), (char) => char.charCodeAt(0));
+    const file = new File([buffer], name, { type: mimeType });
+    formData.append("files", file, name);
+  });
+  formData.append("folder", "imports");
+  formData.append("description", "Uploaded from xu-novel DOCX import");
+
+  const res = await fetch("/api/upload", {
+    method: "POST",
+    body: formData,
+  });
+  if (!res.ok) {
+    const data = (await res.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(data?.error || `Upload failed: ${res.statusText}`);
+  }
+
+  const data = (await res.json()) as {
+    files?: Array<{ url?: string; originalName?: string }>;
+  };
+
   const uploaded: Record<string, string> = {};
-  await Promise.all(
-    Object.entries(images).map(async ([name, dataUrl]) => {
-      const path = `media/imports/${Date.now()}-${name}`;
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path, dataUrl }),
-      });
-      if (!res.ok) {
-        throw new Error(`Upload failed: ${res.statusText}`);
-      }
-      const data = await res.json();
-      uploaded[name] = data.url;
-    })
-  );
+  entries.forEach(([name], index) => {
+    const matched = data.files?.find((file) => file.originalName === name) ?? data.files?.[index];
+    if (!matched?.url) {
+      throw new Error(`上传成功，但缺少图片地址：${name}`);
+    }
+    uploaded[name] = matched.url;
+  });
+
   return uploaded;
 }
 

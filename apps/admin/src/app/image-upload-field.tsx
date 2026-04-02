@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useId, useRef, useState } from "react";
 
 import { Button } from "@xu-novel/ui";
@@ -25,26 +24,33 @@ export function ImageUploadField({
   previewClassName = "aspect-[16/9]",
 }: ImageUploadFieldProps) {
   const inputId = useId();
+  const urlInputId = useId();
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [value, setValue] = useState(initialValue ?? "");
   const [error, setError] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [isCheckingPreview, setIsCheckingPreview] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(initialValue ?? "");
   const [previewError, setPreviewError] = useState("");
+  const [previewMessage, setPreviewMessage] = useState(initialValue ? "已载入当前图片预览。" : "");
   const [previewVersion, setPreviewVersion] = useState(0);
 
-  const previewSrc = value
-    ? `${value}${value.includes("?") ? "&" : "?"}v=${previewVersion}`
+  const previewSrc = previewUrl
+    ? `${previewUrl}${previewUrl.includes("?") ? "&" : "?"}v=${previewVersion}`
     : "";
 
   async function handleFileChange(file: File) {
     setError("");
     setPreviewError("");
+    setPreviewMessage("");
     setIsUploading(true);
 
     try {
       const uploaded = await uploadFileToAdmin({ file, folder });
       setValue(uploaded.url);
+      setPreviewUrl(uploaded.thumbUrl || uploaded.url);
       setPreviewVersion(Date.now());
+      setPreviewMessage("已上传到对象存储，可直接保存。");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "上传失败");
     } finally {
@@ -55,10 +61,25 @@ export function ImageUploadField({
     }
   }
 
+  function handleDetectPreview() {
+    const trimmedValue = value.trim();
+    setPreviewError("");
+    setPreviewMessage("");
+
+    if (!trimmedValue) {
+      setPreviewUrl("");
+      return;
+    }
+
+    setIsCheckingPreview(true);
+    setPreviewUrl(trimmedValue);
+    setPreviewVersion(Date.now());
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <label className="text-sm text-stone-400" htmlFor={inputId}>
+        <label className="text-sm text-stone-400" htmlFor={urlInputId}>
           {label}
         </label>
         {value ? (
@@ -66,7 +87,9 @@ export function ImageUploadField({
             className="text-xs text-stone-500 underline underline-offset-4"
             onClick={() => {
               setValue("");
+              setPreviewUrl("");
               setPreviewError("");
+              setPreviewMessage("");
             }}
             type="button"
           >
@@ -78,23 +101,48 @@ export function ImageUploadField({
       <input name={name} type="hidden" value={value} />
 
       <div className="rounded-[1.75rem] border border-stone-800 bg-stone-950 p-4">
+        <div className="mb-4 flex flex-col gap-3 md:flex-row">
+          <input
+            className="min-w-0 flex-1 rounded-2xl border border-stone-800 bg-stone-900 px-4 py-3 text-sm text-stone-100 outline-none transition focus:border-stone-600"
+            id={urlInputId}
+            onChange={(event) => {
+              setValue(event.target.value);
+              setError("");
+            }}
+            placeholder="粘贴对象存储 URL 或任意可访问图片地址"
+            value={value}
+          />
+          <Button
+            disabled={isCheckingPreview || isUploading}
+            onClick={handleDetectPreview}
+            type="button"
+            variant="secondary"
+          >
+            {isCheckingPreview ? "检测中..." : "检测图片"}
+          </Button>
+        </div>
+
         <div
           className={`relative overflow-hidden rounded-[1.25rem] border border-stone-800 bg-stone-900/70 ${previewClassName}`}
         >
-          {value && !previewError ? (
-            <Image
+          {previewUrl && !previewError ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
               alt={label}
-              className="object-cover"
-              fill
+              className="h-full w-full object-cover"
+              decoding="async"
+              loading="lazy"
               onError={() => {
+                setIsCheckingPreview(false);
                 setPreviewError("图片地址已保存，但当前预览加载失败。可点击“查看原图”确认资源。");
+                setPreviewMessage("");
               }}
               onLoad={() => {
+                setIsCheckingPreview(false);
                 setPreviewError("");
+                setPreviewMessage("检测成功，图片可正常加载。");
               }}
-              sizes="(min-width: 1280px) 28rem, 100vw"
               src={previewSrc}
-              unoptimized
             />
           ) : (
             <div className="flex h-full items-center justify-center px-4 text-center text-sm text-stone-500">
@@ -110,7 +158,7 @@ export function ImageUploadField({
             type="button"
             variant="secondary"
           >
-            {isUploading ? "上传中..." : "上传图片"}
+            {isUploading ? "上传中..." : "上传到对象存储"}
           </Button>
           {value ? (
             <a
@@ -127,6 +175,7 @@ export function ImageUploadField({
         {helpText ? (
           <p className="mt-3 text-xs leading-6 text-stone-500">{helpText}</p>
         ) : null}
+        {previewMessage ? <p className="mt-2 text-sm text-emerald-300">{previewMessage}</p> : null}
         {previewError ? <p className="mt-2 text-sm text-amber-300">{previewError}</p> : null}
         {error ? <p className="mt-2 text-sm text-amber-300">{error}</p> : null}
       </div>

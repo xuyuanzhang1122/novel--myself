@@ -218,6 +218,11 @@ NEXT_PUBLIC_ADMIN_URL=http://localhost:3001
 SITE_REVALIDATE_URL=http://localhost:3000/api/revalidate
 SITE_REVALIDATE_SECRET=${site_revalidate_secret}
 
+# Object storage
+IMAGE_API_BASE_URL=https://image.xumy.art
+IMAGE_API_KEY=
+IMAGE_API_BEARER_TOKEN=
+
 # Cookie domain (leave empty for localhost, set to .yourdomain.com in production)
 NEXT_PUBLIC_AUTH_COOKIE_DOMAIN=
 EOF
