@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useActionState } from "react";
+import type { ChangeEvent } from "react";
 import { useFormStatus } from "react-dom";
 
 import { Button, Input, Panel } from "@xu-novel/ui";
@@ -21,6 +22,8 @@ type ViewMode = "login" | "register";
 
 export function LoginForm({ redirectTo }: { redirectTo?: string }) {
   const [viewMode, setViewMode] = useState<ViewMode>("login");
+  const [registerEmail, setRegisterEmail] = useState("");
+  const [sendCooldown, setSendCooldown] = useState(0);
   const [loginState, loginFormAction] = useActionState(signInAction, initialState);
   const [codeState, sendCodeFormAction] = useActionState(sendRegisterCodeAction, initialState);
   const [registerState, registerFormAction] = useActionState(registerAction, initialState);
@@ -43,6 +46,27 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
     }
   }, [codeState.error, codeState.message]);
 
+  useEffect(() => {
+    if (!codeState.message) return;
+    setSendCooldown(60);
+  }, [codeState.message]);
+
+  useEffect(() => {
+    if (!codeState.error) return;
+    const matchedSeconds = codeState.error.match(/(\d+)\s*秒后/);
+    if (!matchedSeconds) return;
+    setSendCooldown(Math.max(Number(matchedSeconds[1] ?? 0), 0));
+  }, [codeState.error]);
+
+  useEffect(() => {
+    if (sendCooldown <= 0) return;
+    const timer = window.setInterval(() => {
+      setSendCooldown((current) => (current <= 1 ? 0 : current - 1));
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [sendCooldown]);
+
   return (
     <Panel
       id={viewMode === "register" ? "register" : undefined}
@@ -59,10 +83,13 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
       ) : (
         <RegisterCard
           codeState={codeState}
+          email={registerEmail}
+          onEmailChange={(event) => setRegisterEmail(event.target.value)}
           onSwitchToLogin={() => setViewMode("login")}
           redirectTo={redirectTo}
           registerFormAction={registerFormAction}
           registerState={registerState}
+          sendCooldown={sendCooldown}
           sendCodeFormAction={sendCodeFormAction}
         />
       )}
@@ -136,18 +163,27 @@ function LoginCard({
 function RegisterCard({
   redirectTo,
   codeState,
+  email,
   registerState,
   sendCodeFormAction,
   registerFormAction,
   onSwitchToLogin,
+  onEmailChange,
+  sendCooldown,
 }: {
   redirectTo?: string;
   codeState: AuthFormState;
+  email: string;
   registerState: AuthFormState;
   sendCodeFormAction: (payload: FormData) => void;
   registerFormAction: (payload: FormData) => void;
   onSwitchToLogin: () => void;
+  onEmailChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  sendCooldown: number;
 }) {
+  const normalizedEmail = email.trim();
+  const hasEmail = normalizedEmail.length > 0;
+
   return (
     <>
       <div className="space-y-2">
@@ -172,9 +208,13 @@ function RegisterCard({
                 placeholder="注册邮箱"
                 required
                 type="email"
+                value={email}
+                onChange={onEmailChange}
               />
-              <SubmitButton
+              <CooldownSubmitButton
                 className="w-full rounded-[1.35rem] py-3.5"
+                cooldownSeconds={sendCooldown}
+                disabled={!hasEmail}
                 pendingText="发送中..."
                 text="发送验证码"
                 variant="secondary"
@@ -187,14 +227,13 @@ function RegisterCard({
 
         <form action={registerFormAction} className="space-y-4">
           <input name="redirect_to" type="hidden" value={redirectTo ?? "/library"} />
-          <Input
-            autoComplete="email"
-            className="rounded-[1.35rem] border-white/10 bg-white/[0.06] px-4 py-3.5 text-stone-100 placeholder:text-stone-500 dark:border-white/10 dark:bg-white/[0.06]"
-            name="email"
-            placeholder="注册邮箱"
-            required
-            type="email"
-          />
+          <input name="email" type="hidden" value={normalizedEmail} />
+          <div className="rounded-[1.35rem] border border-white/8 bg-white/[0.03] px-4 py-4">
+            <p className="text-[11px] uppercase tracking-[0.24em] text-stone-500">注册邮箱</p>
+            <p className="mt-2 text-sm leading-7 text-stone-200">
+              {hasEmail ? normalizedEmail : "先在上方输入邮箱并发送验证码。"}
+            </p>
+          </div>
           <Input
             className="rounded-[1.35rem] border-white/10 bg-white/[0.06] px-4 py-3.5 text-stone-100 placeholder:text-stone-500 dark:border-white/10 dark:bg-white/[0.06]"
             inputMode="numeric"
@@ -228,6 +267,7 @@ function RegisterCard({
           ) : null}
           <SubmitButton
             className="w-full rounded-[1.35rem] py-3.5"
+            disabled={!hasEmail}
             pendingText="注册中..."
             text="完成注册并进入书库"
           />
@@ -273,17 +313,48 @@ function SubmitButton({
   pendingText,
   variant = "primary",
   className,
+  disabled = false,
 }: {
   text: string;
   pendingText: string;
   variant?: "primary" | "secondary" | "ghost";
   className?: string;
+  disabled?: boolean;
 }) {
   const { pending } = useFormStatus();
 
   return (
-    <Button className={className ?? "w-full"} disabled={pending} type="submit" variant={variant}>
+    <Button className={className ?? "w-full"} disabled={pending || disabled} type="submit" variant={variant}>
       {pending ? pendingText : text}
+    </Button>
+  );
+}
+
+function CooldownSubmitButton({
+  cooldownSeconds,
+  ...props
+}: {
+  cooldownSeconds: number;
+  className?: string;
+  disabled?: boolean;
+  pendingText: string;
+  text: string;
+  variant?: "primary" | "secondary" | "ghost";
+}) {
+  const { pending } = useFormStatus();
+
+  return (
+    <Button
+      className={props.className ?? "w-full"}
+      disabled={pending || props.disabled || cooldownSeconds > 0}
+      type="submit"
+      variant={props.variant}
+    >
+      {pending
+        ? props.pendingText
+        : cooldownSeconds > 0
+          ? `${cooldownSeconds} 秒后重发`
+          : props.text}
     </Button>
   );
 }
