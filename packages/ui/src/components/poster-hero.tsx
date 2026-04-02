@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { Badge } from "./badge";
 import { Button } from "./button";
 import { cn } from "../lib/utils";
@@ -37,9 +35,9 @@ function ActionButton({
   }
 
   return (
-    <Link href={href}>
+    <a href={href}>
       <Button variant={variant}>{label}</Button>
-    </Link>
+    </a>
   );
 }
 
