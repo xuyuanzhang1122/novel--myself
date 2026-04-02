@@ -13,6 +13,7 @@ import {
 import type {
   ChapterRecord,
   ImportJobRecord,
+  LatestReadingRecord,
   NovelRecord,
   ReaderPreferenceRecord,
   ReadingHistoryRecord,
@@ -283,6 +284,38 @@ export async function getReadingHistory(userId: string, novelId: string): Promis
       fallback_progress: data.fallbackProgress || 0,
       updated_at: data.updatedAt?.toISOString(),
     } as ReadingHistoryRecord;
+  } catch {
+    return null;
+  }
+}
+
+export async function getLatestReadingHistory(userId: string): Promise<LatestReadingRecord | null> {
+  try {
+    const data = await prisma.readingHistory.findFirst({
+      where: {
+        userId,
+        novel: { status: "published" },
+        chapter: { status: "published" },
+      },
+      orderBy: { updatedAt: "desc" },
+      include: {
+        novel: true,
+        chapter: true,
+      },
+    });
+
+    if (!data) return null;
+
+    return {
+      novel_id: data.novelId,
+      novel_title: data.novel.title,
+      novel_slug: data.novel.slug,
+      chapter_id: data.chapterId,
+      chapter_title: data.chapter.title,
+      chapter_slug: data.chapter.slug,
+      fallback_progress: data.fallbackProgress ?? 0,
+      updated_at: data.updatedAt?.toISOString(),
+    } as LatestReadingRecord;
   } catch {
     return null;
   }

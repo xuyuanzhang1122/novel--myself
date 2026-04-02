@@ -10,9 +10,10 @@ import {
   triggerSiteRevalidation,
 } from "@xu-novel/lib";
 
+import type { AdminActionResult } from "../action-result";
 import { parseAppearanceInput } from "../../lib/validation";
 
-export async function saveAppearanceAction(formData: FormData) {
+export async function saveAppearanceAction(formData: FormData): Promise<AdminActionResult> {
   const user = await getUser();
   if (!user) {
     redirect("/login?redirectedFrom=/appearance");
@@ -54,4 +55,9 @@ export async function saveAppearanceAction(formData: FormData) {
   } catch (error: any) {
     throw new Error(`保存失败：${error.message}`);
   }
+
+  return {
+    ok: true,
+    message: "外观已保存。",
+  };
 }

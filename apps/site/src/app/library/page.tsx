@@ -1,15 +1,31 @@
+import type { LatestReadingRecord } from "@xu-novel/lib";
 import Link from "next/link";
 
-import { listPublishedNovels, getSiteSettings } from "@xu-novel/lib";
+import { getLatestReadingHistory, getSiteSettings, getUser, listPublishedNovels } from "@xu-novel/lib";
 import { Badge, Panel, PosterHero, SectionHeading } from "@xu-novel/ui";
 
 import { SiteShell } from "../site-shell";
 
+function getContinueHref(history: LatestReadingRecord | null, firstNovelSlug?: string) {
+  if (history) {
+    return `/novel/${history.novel_slug}/chapter/${history.chapter_slug}`;
+  }
+
+  return firstNovelSlug ? `/novel/${firstNovelSlug}` : "/library";
+}
+
 export default async function LibraryPage() {
-  const [novels, settings] = await Promise.all([
+  const user = await getUser();
+  const [novels, settings, latestReading] = await Promise.all([
     listPublishedNovels(),
     getSiteSettings(),
+    user ? getLatestReadingHistory(user.id) : Promise.resolve(null),
   ]);
+  const continueHref = getContinueHref(latestReading, novels[0]?.slug);
+  const continueProgress =
+    latestReading && typeof latestReading.fallback_progress === "number"
+      ? `${Math.round(latestReading.fallback_progress * 100)}%`
+      : null;
 
   return (
     <SiteShell
@@ -24,7 +40,9 @@ export default async function LibraryPage() {
           "在同一主域下维持沉浸阅读与后台管理的双重节奏。"
         }
         primaryActionLabel={settings.hero_primary_action ?? "继续阅读"}
+        primaryActionHref={continueHref}
         secondaryActionLabel={settings.hero_secondary_action ?? "打开后台"}
+        secondaryActionHref={`${process.env.NEXT_PUBLIC_ADMIN_URL || "http://localhost:3001"}/dashboard`}
       />
 
       <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
@@ -71,10 +89,32 @@ export default async function LibraryPage() {
               继续阅读
             </p>
             <h2 className="font-serif text-3xl">最近阅读</h2>
-            <p className="text-sm leading-7 text-stone-300">
-              v1
-              通过段落锚点与百分比双重记录阅读进度，章节更新后仍能回到合理位置。
-            </p>
+            {latestReading ? (
+              <div className="space-y-3 text-sm leading-7 text-stone-300">
+                <p>
+                  正在阅读《{latestReading.novel_title}》的《{latestReading.chapter_title}》。
+                  {continueProgress ? ` 当前记录进度约 ${continueProgress}。` : ""}
+                </p>
+                <Link
+                  className="inline-flex rounded-full border border-stone-700 px-4 py-2 text-sm text-stone-100 transition hover:border-stone-500 hover:bg-stone-800"
+                  href={continueHref}
+                >
+                  继续阅读
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3 text-sm leading-7 text-stone-300">
+                <p>还没有阅读记录。打开一本已发布作品后，这里会自动回到你上次停下的位置。</p>
+                {novels[0] ? (
+                  <Link
+                    className="inline-flex rounded-full border border-stone-700 px-4 py-2 text-sm text-stone-100 transition hover:border-stone-500 hover:bg-stone-800"
+                    href={`/novel/${novels[0].slug}`}
+                  >
+                    打开第一本作品
+                  </Link>
+                ) : null}
+              </div>
+            )}
           </Panel>
           <Panel className="space-y-4">
             <p className="text-xs uppercase tracking-[0.28em] text-stone-500">

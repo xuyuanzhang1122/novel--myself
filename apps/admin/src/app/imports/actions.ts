@@ -12,6 +12,8 @@ import {
   triggerSiteRevalidation,
 } from "@xu-novel/lib";
 
+import type { AdminActionResult } from "../action-result";
+
 function readField(formData: FormData, name: string) {
   return formData.get(name)?.toString().trim() ?? "";
 }
@@ -43,7 +45,7 @@ export async function saveImportJobAction(payload: {
   }
 }
 
-export async function createNovelFromImportAction(formData: FormData) {
+export async function createNovelFromImportAction(formData: FormData): Promise<AdminActionResult> {
   const user = await getUser();
   if (!user) {
     redirect("/login?redirectedFrom=/imports");
@@ -146,10 +148,14 @@ export async function createNovelFromImportAction(formData: FormData) {
     throw new Error(`生成作品失败：${error.message}`);
   }
 
-  redirect(`/novels/${novelId}`);
+  return {
+    ok: true,
+    message: "作品已生成。",
+    redirectTo: `/novels/${novelId}`,
+  };
 }
 
-export async function deleteImportJobAction(formData: FormData) {
+export async function deleteImportJobAction(formData: FormData): Promise<AdminActionResult> {
   const user = await getUser();
   if (!user) {
     redirect("/login?redirectedFrom=/imports");
@@ -169,5 +175,9 @@ export async function deleteImportJobAction(formData: FormData) {
     throw new Error(`删除失败：${error.message}`);
   }
 
-  redirect("/imports");
+  return {
+    ok: true,
+    message: "导入记录已删除。",
+    redirectTo: "/imports",
+  };
 }

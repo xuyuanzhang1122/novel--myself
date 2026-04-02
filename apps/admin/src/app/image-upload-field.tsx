@@ -29,14 +29,22 @@ export function ImageUploadField({
   const [value, setValue] = useState(initialValue ?? "");
   const [error, setError] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [previewError, setPreviewError] = useState("");
+  const [previewVersion, setPreviewVersion] = useState(0);
+
+  const previewSrc = value
+    ? `${value}${value.includes("?") ? "&" : "?"}v=${previewVersion}`
+    : "";
 
   async function handleFileChange(file: File) {
     setError("");
+    setPreviewError("");
     setIsUploading(true);
 
     try {
       const uploaded = await uploadFileToAdmin({ file, folder });
       setValue(uploaded.url);
+      setPreviewVersion(Date.now());
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "上传失败");
     } finally {
@@ -56,7 +64,10 @@ export function ImageUploadField({
         {value ? (
           <button
             className="text-xs text-stone-500 underline underline-offset-4"
-            onClick={() => setValue("")}
+            onClick={() => {
+              setValue("");
+              setPreviewError("");
+            }}
             type="button"
           >
             移除图片
@@ -70,17 +81,24 @@ export function ImageUploadField({
         <div
           className={`relative overflow-hidden rounded-[1.25rem] border border-stone-800 bg-stone-900/70 ${previewClassName}`}
         >
-          {value ? (
+          {value && !previewError ? (
             <Image
               alt={label}
               className="object-cover"
               fill
+              onError={() => {
+                setPreviewError("图片地址已保存，但当前预览加载失败。可点击“查看原图”确认资源。");
+              }}
+              onLoad={() => {
+                setPreviewError("");
+              }}
               sizes="(min-width: 1280px) 28rem, 100vw"
-              src={value}
+              src={previewSrc}
+              unoptimized
             />
           ) : (
             <div className="flex h-full items-center justify-center px-4 text-center text-sm text-stone-500">
-              暂无图片，点击下方按钮上传。
+              {previewError || "暂无图片，点击下方按钮上传。"}
             </div>
           )}
         </div>
@@ -109,6 +127,7 @@ export function ImageUploadField({
         {helpText ? (
           <p className="mt-3 text-xs leading-6 text-stone-500">{helpText}</p>
         ) : null}
+        {previewError ? <p className="mt-2 text-sm text-amber-300">{previewError}</p> : null}
         {error ? <p className="mt-2 text-sm text-amber-300">{error}</p> : null}
       </div>
 

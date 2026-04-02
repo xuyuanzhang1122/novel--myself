@@ -59,6 +59,17 @@ export type ReadingHistoryRecord = {
   updated_at?: string;
 };
 
+export type LatestReadingRecord = {
+  novel_id: string;
+  novel_title: string;
+  novel_slug: string;
+  chapter_id: string;
+  chapter_title: string;
+  chapter_slug: string;
+  fallback_progress: number | null;
+  updated_at?: string;
+};
+
 export type ImportJobRecord = {
   id: string;
   file_name: string;

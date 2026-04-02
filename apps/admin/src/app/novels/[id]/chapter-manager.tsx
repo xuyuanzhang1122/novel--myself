@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useCallback, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 import { Button, Panel } from "@xu-novel/ui";
 
+import type { AdminActionResult } from "../../action-result";
+import { getRedirectTargetFromError } from "../../action-result";
 import { MarkdownEditor } from "./markdown-editor";
 
 type ChapterItem = {
@@ -19,10 +22,11 @@ type ChapterItem = {
 type ChapterManagerProps = {
   novelId: string;
   chapters: ChapterItem[];
-  saveAction: (formData: FormData) => Promise<void>;
+  saveAction: (formData: FormData) => Promise<AdminActionResult | void>;
 };
 
 export function ChapterManager({ novelId, chapters, saveAction }: ChapterManagerProps) {
+  const router = useRouter();
   const [activeId, setActiveId] = useState<string | "__new__">(
     chapters[0]?.id ?? "__new__",
   );
@@ -38,15 +42,24 @@ export function ChapterManager({ novelId, chapters, saveAction }: ChapterManager
       setFormSuccess("");
       startTransition(async () => {
         try {
-          await saveAction(formData);
-          setFormSuccess("保存成功");
+          const result = await saveAction(formData);
+          if (result?.chapterId) {
+            setActiveId(result.chapterId);
+          }
+          setFormSuccess(result?.message ?? "保存成功");
+          router.refresh();
           setTimeout(() => setFormSuccess(""), 3000);
         } catch (e: any) {
+          const redirectTo = getRedirectTargetFromError(e);
+          if (redirectTo) {
+            router.push(redirectTo);
+            return;
+          }
           setFormError(e?.message ?? "保存失败");
         }
       });
     },
-    [saveAction],
+    [router, saveAction],
   );
 
   const nextOrder = chapters.length > 0

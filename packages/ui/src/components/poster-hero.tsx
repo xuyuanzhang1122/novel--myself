@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { Badge } from "./badge";
 import { Button } from "./button";
 import { cn } from "../lib/utils";
@@ -7,16 +9,48 @@ type PosterHeroProps = {
   title: string;
   description: string;
   primaryActionLabel: string;
+  primaryActionHref?: string;
   secondaryActionLabel?: string;
+  secondaryActionHref?: string;
   className?: string;
 };
+
+function ActionButton({
+  href,
+  label,
+  variant = "primary",
+}: {
+  href?: string;
+  label: string;
+  variant?: "primary" | "secondary";
+}) {
+  if (!href) {
+    return <Button variant={variant}>{label}</Button>;
+  }
+
+  if (href.startsWith("http://") || href.startsWith("https://")) {
+    return (
+      <a href={href}>
+        <Button variant={variant}>{label}</Button>
+      </a>
+    );
+  }
+
+  return (
+    <Link href={href}>
+      <Button variant={variant}>{label}</Button>
+    </Link>
+  );
+}
 
 export function PosterHero({
   eyebrow,
   title,
   description,
   primaryActionLabel,
+  primaryActionHref,
   secondaryActionLabel,
+  secondaryActionHref,
   className,
 }: PosterHeroProps) {
   return (
@@ -38,8 +72,14 @@ export function PosterHero({
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Button>{primaryActionLabel}</Button>
-          {secondaryActionLabel ? <Button variant="secondary">{secondaryActionLabel}</Button> : null}
+          <ActionButton href={primaryActionHref} label={primaryActionLabel} />
+          {secondaryActionLabel ? (
+            <ActionButton
+              href={secondaryActionHref}
+              label={secondaryActionLabel}
+              variant="secondary"
+            />
+          ) : null}
         </div>
       </div>
     </section>
