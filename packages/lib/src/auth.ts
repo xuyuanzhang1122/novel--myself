@@ -41,6 +41,17 @@ function getSessionSecret() {
   );
 }
 
+function shouldUseSecureCookies() {
+  if (process.env.NODE_ENV !== "production") return false;
+
+  const explicit = process.env.AUTH_COOKIE_SECURE?.trim().toLowerCase();
+  if (explicit === "true") return true;
+  if (explicit === "false") return false;
+
+  const urls = [process.env.NEXT_PUBLIC_SITE_URL, process.env.NEXT_PUBLIC_ADMIN_URL];
+  return urls.some((value) => value?.trim().startsWith("https://"));
+}
+
 function signPayload(payload: string) {
   return createHmac("sha256", getSessionSecret()).update(payload).digest("base64url");
 }
@@ -118,7 +129,7 @@ export async function signInWithPassword(email: string, password: string) {
   }), {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: shouldUseSecureCookies(),
     path: "/",
     maxAge: 60 * 60 * 24 * 30,
     ...(domain ? { domain } : {}),
@@ -134,7 +145,7 @@ export async function signOut() {
   cookieStore.set(AUTH_COOKIE_NAME, "", {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: shouldUseSecureCookies(),
     path: "/",
     maxAge: 0,
     ...(domain ? { domain } : {}),
