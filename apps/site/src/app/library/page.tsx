@@ -41,8 +41,8 @@ export default async function LibraryPage() {
         }
         primaryActionLabel={settings.hero_primary_action ?? "继续阅读"}
         primaryActionHref={continueHref}
-        secondaryActionLabel={settings.hero_secondary_action ?? "打开后台"}
-        secondaryActionHref={`${process.env.NEXT_PUBLIC_ADMIN_URL || "http://localhost:3001"}/dashboard`}
+        secondaryActionLabel={settings.hero_secondary_action ?? "阅读设置"}
+        secondaryActionHref="/settings"
       />
 
       <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">

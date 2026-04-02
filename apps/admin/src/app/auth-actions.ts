@@ -22,6 +22,7 @@ export async function signInAction(
   const result = await signInWithPassword(
     formData.get("email")?.toString() ?? "",
     formData.get("password")?.toString() ?? "",
+    { requiredRole: "ADMIN" },
   );
 
   if (!result.ok) {

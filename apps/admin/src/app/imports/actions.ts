@@ -6,7 +6,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import {
   estimateWordCount,
   getCacheTagsForNovel,
-  getUser,
+  getAdminUser,
   markdownToHtml,
   prisma,
   triggerSiteRevalidation,
@@ -24,7 +24,7 @@ export async function saveImportJobAction(payload: {
   imageManifest: Record<string, string>;
   sourceDocUrl?: string | null;
 }) {
-  const user = await getUser();
+  const user = await getAdminUser();
   if (!user) {
     redirect("/login?redirectedFrom=/imports");
   }
@@ -46,7 +46,7 @@ export async function saveImportJobAction(payload: {
 }
 
 export async function createNovelFromImportAction(formData: FormData): Promise<AdminActionResult> {
-  const user = await getUser();
+  const user = await getAdminUser();
   if (!user) {
     redirect("/login?redirectedFrom=/imports");
   }
@@ -156,7 +156,7 @@ export async function createNovelFromImportAction(formData: FormData): Promise<A
 }
 
 export async function deleteImportJobAction(formData: FormData): Promise<AdminActionResult> {
-  const user = await getUser();
+  const user = await getAdminUser();
   if (!user) {
     redirect("/login?redirectedFrom=/imports");
   }

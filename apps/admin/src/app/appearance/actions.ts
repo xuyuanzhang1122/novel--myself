@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath, revalidateTag } from "next/cache";
 
 import {
-  getUser,
+  getAdminUser,
   prisma,
   siteSettingsTag,
   triggerSiteRevalidation,
@@ -14,7 +14,7 @@ import type { AdminActionResult } from "../action-result";
 import { parseAppearanceInput } from "../../lib/validation";
 
 export async function saveAppearanceAction(formData: FormData): Promise<AdminActionResult> {
-  const user = await getUser();
+  const user = await getAdminUser();
   if (!user) {
     redirect("/login?redirectedFrom=/appearance");
   }

@@ -1,13 +1,13 @@
 import { notFound, redirect } from "next/navigation";
 
-import { getNovelById, getUser, listChaptersForNovel } from "@xu-novel/lib";
+import { getAdminUser, getNovelById, listChaptersForNovel } from "@xu-novel/lib";
 
 import { AdminShell } from "../../admin-shell";
 import { saveChapterAction } from "../actions";
 import { ChapterManager } from "./chapter-manager";
 
 export default async function NovelDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const user = await getUser();
+  const user = await getAdminUser();
   if (!user) {
     redirect("/login?redirectedFrom=/novels");
   }

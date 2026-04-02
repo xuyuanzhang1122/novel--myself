@@ -12,6 +12,7 @@ const navItems = [
   { href: "/novels", label: "作品" },
   { href: "/imports", label: "导入" },
   { href: "/appearance", label: "外观" },
+  { href: "/users", label: "用户" },
 ];
 
 export function AdminShell({
@@ -45,7 +46,7 @@ export function AdminShell({
               </Button>
             </a>
             <form action={signOutAction} className="mt-3">
-              <Button className="w-full" variant="ghost">
+              <Button className="w-full" type="submit" variant="ghost">
                 退出登录
               </Button>
             </form>

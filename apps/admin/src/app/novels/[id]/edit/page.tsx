@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 
-import { getNovelById, getUser } from "@xu-novel/lib";
+import { getAdminUser, getNovelById } from "@xu-novel/lib";
 import { Panel, Button } from "@xu-novel/ui";
 
 import { AdminShell } from "../../../admin-shell";
@@ -10,7 +10,7 @@ import { saveNovelAction } from "../../actions";
 import { DeleteNovelButton } from "../../delete-button";
 
 export default async function NovelEditPage({ params }: { params: Promise<{ id: string }> }) {
-  const user = await getUser();
+  const user = await getAdminUser();
   if (!user) {
     redirect("/login?redirectedFrom=/novels");
   }

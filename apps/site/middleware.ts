@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 const AUTH_COOKIE_NAME = "xu-novel-session";
-const PUBLIC_ROUTES = ["/", "/library", "/login", "/novel", "/api/revalidate"];
-const PROTECTED_PREFIXES = ["/settings", "/api/reading-progress"];
+const PUBLIC_ROUTES = ["/", "/login", "/api/revalidate"];
+const PROTECTED_PREFIXES = ["/library", "/novel", "/settings", "/api/reading-progress"];
 
 function matchesRoute(pathname: string, route: string) {
   if (route === "/") return pathname === "/";

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { getAuthDefaults, getUser } from "@xu-novel/lib";
+import { getAdminUser, getAuthDefaults } from "@xu-novel/lib";
 
 import { SignInForm } from "./signin-form";
 
@@ -16,7 +16,7 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ redirectedFrom?: string }>;
 }) {
-  const [params, user] = await Promise.all([searchParams, getUser()]);
+  const [params, user] = await Promise.all([searchParams, getAdminUser()]);
   if (user) {
     redirect(getRedirectTarget(params.redirectedFrom));
   }

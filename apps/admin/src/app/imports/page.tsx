@@ -1,14 +1,14 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
-import { getUser, listImportJobs } from "@xu-novel/lib";
+import { getAdminUser, listImportJobs } from "@xu-novel/lib";
 import { Button, Panel } from "@xu-novel/ui";
 
 import { AdminShell } from "../admin-shell";
 import { ImportDocxForm } from "./import-docx-form";
 
 export default async function ImportsPage() {
-  const user = await getUser();
+  const user = await getAdminUser();
   if (!user) {
     redirect("/login?redirectedFrom=/imports");
   }

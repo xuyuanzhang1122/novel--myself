@@ -10,7 +10,7 @@ type UploadedFileResponse = {
   category?: string;
 };
 
-const DEFAULT_IMAGE_API_BASE_URL = "https://image.xumy.art";
+const DEFAULT_IMAGE_API_BASE_URL = "http://127.0.0.1:4000";
 
 function getImageApiBaseUrl() {
   return (process.env.IMAGE_API_BASE_URL || DEFAULT_IMAGE_API_BASE_URL).replace(/\/+$/, "");

@@ -1,6 +1,6 @@
 # xu-novel
 
-Private novel reading & publishing platform. It ships as a pnpm monorepo with two Next.js 15 apps: a reader-facing site and an editorial admin workspace, backed by Prisma + SQLite and a built-in password login.
+Private novel reading & publishing platform. It ships as a pnpm monorepo with two Next.js 15 apps: a reader-facing site and an editorial admin workspace, backed by Prisma + SQLite with built-in user accounts, bootstrap admin credentials, and email-code registration.
 
 [中文文档](./README.zh-CN.md)
 
@@ -30,7 +30,7 @@ The setup script will:
 1. Detect your OS (macOS / Linux / WSL)
 2. Install Node.js 20+ and pnpm if missing
 3. Clone the repo and install dependencies
-4. Generate `.env.local` interactively with your admin credentials
+4. Generate `.env.local` interactively with your bootstrap admin, QQ SMTP, and object storage settings
 5. Initialize the SQLite database via Prisma
 6. Run a build to verify everything works
 
@@ -47,7 +47,13 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 NEXT_PUBLIC_ADMIN_URL=http://localhost:3001
 SITE_REVALIDATE_URL=http://localhost:3000/api/revalidate
 SITE_REVALIDATE_SECRET=replace-with-a-random-secret
-AUTH_SESSION_SECRET=
+AUTH_SESSION_SECRET=replace-with-another-random-secret
+SMTP_QQ_EMAIL=
+SMTP_QQ_AUTH_CODE=
+SMTP_FROM_NAME=xu-novel
+IMAGE_API_BASE_URL=http://127.0.0.1:4000
+IMAGE_API_KEY=
+IMAGE_API_BEARER_TOKEN=
 NEXT_PUBLIC_AUTH_COOKIE_DOMAIN=
 EOF
 pnpm --filter @xu-novel/lib exec prisma db push
@@ -86,10 +92,10 @@ Run the two `start` commands in separate terminals.
 
 | App | URL | Description |
 |-----|-----|-------------|
-| Site | http://localhost:3000 | Reader-facing library & reading experience |
-| Admin | http://localhost:3001 | Editorial workspace: novels, chapters, imports, appearance |
+| Site | http://localhost:3000 | Public homepage preview, login/register, logged-in reading experience |
+| Admin | http://localhost:3001 | Editorial workspace: novels, chapters, imports, appearance, user management |
 
-Default login: `admin@local` / `novel123456` (configurable in `.env.local`).
+Bootstrap admin login: `admin@local` / `novel123456` (configurable in `.env.local`).
 
 ## Architecture
 
@@ -112,16 +118,20 @@ xu-novel/
 
 - **Framework**: Next.js 15 (App Router, Server Actions, RSC)
 - **Database**: Prisma ORM + SQLite (zero external dependencies)
-- **Auth**: Custom HMAC-SHA256 signed cookies (no third-party auth service)
+- **Auth**: Custom HMAC-SHA256 signed cookies + Prisma user accounts (no third-party auth service)
 - **Styling**: Tailwind CSS with Chinese typography focus
 - **Monorepo**: pnpm workspaces + Turborepo
 - **Content**: Markdown as single source of truth, rendered to HTML via unified/remark/rehype
 
 ### Key Features
 
+- **Public homepage preview** for guests; library / novel / chapter routes require login
+- **Email + verification-code registration** backed by QQ SMTP sender configuration
+- **Admin user management** for creating users, deleting users, and changing admin permissions
 - **Novel & chapter CRUD** with draft/published/archived status
 - **DOCX import** (browser-side parsing via mammoth + turndown)
 - **Appearance management** (hero text, background, theme, font, accent color — all admin-configurable)
+- **Upload proxy configuration** for object storage via `IMAGE_API_*` environment variables
 - **Reading progress** tracking with paragraph anchor + percentage fallback
 - **Cross-app cache revalidation** via protected API endpoint
 - **Offline-capable dev** (SQLite, system fonts, no external CDN)
@@ -132,11 +142,32 @@ See [`.env.example`](.env.example) for full reference.
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `ADMIN_EMAIL` | Yes | Admin login email |
-| `ADMIN_PASSWORD` | No | Admin password (default: `novel123456`) |
+| `ADMIN_EMAIL` | Yes | Bootstrap admin email |
+| `ADMIN_PASSWORD` | No | Bootstrap admin password (default: `novel123456`) |
 | `SITE_REVALIDATE_SECRET` | Yes | Secret for cross-app cache invalidation |
 | `AUTH_SESSION_SECRET` | No | Dedicated session signing secret |
+| `SMTP_QQ_EMAIL` | No | QQ sender mailbox for registration emails |
+| `SMTP_QQ_AUTH_CODE` | No | QQ mailbox authorization code |
+| `SMTP_FROM_NAME` | No | Display name used in registration emails |
+| `IMAGE_API_BASE_URL` | No | Object storage upload service base URL |
+| `IMAGE_API_KEY` | No | Upload service API key |
+| `IMAGE_API_BEARER_TOKEN` | No | Upload service bearer token |
 | `NEXT_PUBLIC_AUTH_COOKIE_DOMAIN` | No | Cookie domain for shared auth in production |
+
+Registration email notes:
+
+- Sender setup currently supports QQ mailboxes only.
+- End users can register with any valid email address; the QQ restriction applies only to the sender account configured on the server.
+- If you leave `SMTP_QQ_EMAIL` / `SMTP_QQ_AUTH_CODE` empty, login still works but email-code registration will fail until SMTP is configured.
+
+Object storage notes:
+
+- Recommended service repo: [Novel-Object-Storage](https://github.com/xuyuanzhang1122/Novel-Object-Storage)
+- The open-source storage service listens on `http://127.0.0.1:4000` by default, which matches the default `IMAGE_API_BASE_URL` in this project.
+- Start the storage service separately, then point `IMAGE_API_BASE_URL` at that deployment.
+- Uploads are proxied through `apps/admin/src/app/api/upload/route.ts`.
+- Configure either `IMAGE_API_KEY` or `IMAGE_API_BEARER_TOKEN` for the upload service.
+- If you run the storage project from source, follow its README to create `.env`, bootstrap its admin account, and generate an API key for this app.
 
 ## Scripts
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { getImportJobById, getUser, splitMarkdownIntoChapters } from "@xu-novel/lib";
+import { getAdminUser, getImportJobById, splitMarkdownIntoChapters } from "@xu-novel/lib";
 import { Button, Panel } from "@xu-novel/ui";
 
 import { AdminShell } from "../../admin-shell";
@@ -31,7 +31,7 @@ export default async function ImportDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const user = await getUser();
+  const user = await getAdminUser();
   if (!user) {
     redirect("/login?redirectedFrom=/imports");
   }

@@ -1,4 +1,6 @@
 export type PublishState = "draft" | "published" | "archived";
+export type UserRole = "USER" | "ADMIN";
+export type UserStatus = "ACTIVE" | "DISABLED";
 
 export type NovelRecord = {
   id: string;
@@ -79,6 +81,16 @@ export type ImportJobRecord = {
   status: "pending" | "confirmed" | "failed";
   error_message: string | null;
   created_at?: string;
+};
+
+export type UserRecord = {
+  id: string;
+  email: string;
+  role: UserRole;
+  status: UserStatus;
+  email_verified_at: string | null;
+  created_at?: string;
+  updated_at?: string;
 };
 
 export type ReaderTheme = {

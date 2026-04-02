@@ -7,7 +7,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import {
   prisma,
   estimateWordCount,
-  getUser,
+  getAdminUser,
   getCacheTagsForNovel,
   getNovelById,
   listChaptersForNovel,
@@ -22,7 +22,7 @@ import type { AdminActionResult } from "../action-result";
 import { parseChapterInput, parseNovelInput } from "../../lib/validation";
 
 export async function saveNovelAction(formData: FormData): Promise<AdminActionResult> {
-  const user = await getUser();
+  const user = await getAdminUser();
   if (!user) {
     redirect("/login?redirectedFrom=/novels");
   }
@@ -87,7 +87,7 @@ export async function saveNovelAction(formData: FormData): Promise<AdminActionRe
 }
 
 export async function saveChapterAction(formData: FormData): Promise<AdminActionResult> {
-  const user = await getUser();
+  const user = await getAdminUser();
   if (!user) {
     redirect("/login?redirectedFrom=/novels");
   }
@@ -152,7 +152,7 @@ export async function saveChapterAction(formData: FormData): Promise<AdminAction
 }
 
 export async function deleteNovelAction(id: string) {
-  const user = await getUser();
+  const user = await getAdminUser();
   if (!user) {
     redirect("/login?redirectedFrom=/novels");
   }

@@ -7,4 +7,7 @@ export const env = {
   siteRevalidateSecret:
     process.env.SITE_REVALIDATE_SECRET ?? "xu-novel-local-revalidate-secret",
   adminEmail: process.env.ADMIN_EMAIL ?? "",
+  smtpQqEmail: process.env.SMTP_QQ_EMAIL ?? "",
+  smtpFromName: process.env.SMTP_FROM_NAME ?? "xu-novel",
+  imageApiBaseUrl: process.env.IMAGE_API_BASE_URL ?? "http://127.0.0.1:4000",
 };

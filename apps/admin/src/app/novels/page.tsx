@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 
 import Link from "next/link";
 
-import { getUser, listAllNovels } from "@xu-novel/lib";
+import { getAdminUser, listAllNovels } from "@xu-novel/lib";
 import { Button, Panel } from "@xu-novel/ui";
 
 import { AdminShell } from "../admin-shell";
@@ -11,7 +11,7 @@ import { ImageUploadField } from "../image-upload-field";
 import { saveNovelAction } from "./actions";
 
 export default async function NovelsPage() {
-  const user = await getUser();
+  const user = await getAdminUser();
   if (!user) {
     redirect("/login?redirectedFrom=/novels");
   }

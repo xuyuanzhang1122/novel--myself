@@ -187,20 +187,36 @@ configure_env() {
     return
   fi
 
-  local admin_email admin_password site_revalidate_secret
+  local admin_email admin_password site_revalidate_secret auth_session_secret
+  local smtp_qq_email smtp_qq_auth_code smtp_from_name
+  local image_api_base_url image_api_key image_api_bearer_token
 
   printf "\n"
-  info "xu-novel uses a built-in admin login (no Supabase needed)."
-  info "Set your admin credentials below."
+  info "xu-novel uses a built-in bootstrap admin account plus email registration."
+  info "Set your bootstrap admin credentials below."
 
   admin_email="$(prompt_value "Admin email (ADMIN_EMAIL)" "admin@local")"
   admin_password="$(prompt_value "Admin password (ADMIN_PASSWORD)" "novel123456")"
 
   if command -v openssl >/dev/null 2>&1; then
     site_revalidate_secret="$(openssl rand -base64 32 | tr -d '\n')"
+    auth_session_secret="$(openssl rand -base64 32 | tr -d '\n')"
   else
     site_revalidate_secret="$(node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))")"
+    auth_session_secret="$(node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))")"
   fi
+
+  printf "\n"
+  info "QQ SMTP is used for registration verification emails."
+  smtp_qq_email="$(prompt_value "QQ sender email (SMTP_QQ_EMAIL, leave empty to skip)" "")"
+  smtp_qq_auth_code="$(prompt_value "QQ mail auth code (SMTP_QQ_AUTH_CODE)" "")"
+  smtp_from_name="$(prompt_value "Sender name (SMTP_FROM_NAME)" "xu-novel")"
+
+  printf "\n"
+  info "Object storage is proxied through an upload service."
+  image_api_base_url="$(prompt_value "Upload service base URL (IMAGE_API_BASE_URL)" "http://127.0.0.1:4000")"
+  image_api_key="$(prompt_value "Upload service API key (IMAGE_API_KEY, optional)" "")"
+  image_api_bearer_token="$(prompt_value "Upload service bearer token (IMAGE_API_BEARER_TOKEN, optional)" "")"
 
   cat > .env.local <<EOF
 # xu-novel environment configuration
@@ -217,11 +233,17 @@ NEXT_PUBLIC_ADMIN_URL=http://localhost:3001
 # Cross-site cache revalidation
 SITE_REVALIDATE_URL=http://localhost:3000/api/revalidate
 SITE_REVALIDATE_SECRET=${site_revalidate_secret}
+AUTH_SESSION_SECRET=${auth_session_secret}
+
+# QQ SMTP (registration emails)
+SMTP_QQ_EMAIL=${smtp_qq_email}
+SMTP_QQ_AUTH_CODE=${smtp_qq_auth_code}
+SMTP_FROM_NAME=${smtp_from_name}
 
 # Object storage
-IMAGE_API_BASE_URL=https://image.xumy.art
-IMAGE_API_KEY=
-IMAGE_API_BEARER_TOKEN=
+IMAGE_API_BASE_URL=${image_api_base_url}
+IMAGE_API_KEY=${image_api_key}
+IMAGE_API_BEARER_TOKEN=${image_api_bearer_token}
 
 # Cookie domain (leave empty for localhost, set to .yourdomain.com in production)
 NEXT_PUBLIC_AUTH_COOKIE_DOMAIN=
@@ -272,9 +294,10 @@ print_summary() {
   printf "    Site (reader):  http://localhost:3000\n"
   printf "    Admin (editor): http://localhost:3001\n"
   printf "\n"
-  printf "  ${CYAN}Default login:${NC}\n"
+  printf "  ${CYAN}Bootstrap admin login:${NC}\n"
   printf "    Email:    value from ADMIN_EMAIL in .env.local\n"
   printf "    Password: value from ADMIN_PASSWORD in .env.local\n"
+  printf "    New users can also register on the site with email verification.\n"
   printf "\n"
 }
 

@@ -12,15 +12,6 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (hasSession && pathname === "/login") {
-    const redirectedFrom = request.nextUrl.searchParams.get("redirectedFrom");
-    const target =
-      redirectedFrom && redirectedFrom.startsWith("/") && !redirectedFrom.startsWith("//")
-        ? redirectedFrom
-        : "/dashboard";
-    return NextResponse.redirect(new URL(target, request.url));
-  }
-
   return NextResponse.next();
 }
 

@@ -15,6 +15,7 @@
     "github-slugger": "^2.0.0",
     "jszip": "^3.10.1",
     "mammoth": "^1.9.1",
+    "nodemailer": "^8.0.4",
     "rehype-raw": "^7.0.0",
     "rehype-sanitize": "^6.0.0",
     "rehype-stringify": "^10.0.1",
@@ -26,6 +27,7 @@
     "unist-util-visit": "^5.0.0"
   },
   "devDependencies": {
+    "@types/nodemailer": "^7.0.11",
     "prisma": "^5.22.0"
   }
 }

@@ -1,6 +1,5 @@
 import { unstable_cache } from "next/cache";
 
-import { prisma } from "./index";
 import {
   chapterCacheTag,
   chapterListTag,
@@ -10,6 +9,7 @@ import {
   novelListTag,
   siteSettingsTag,
 } from "./content";
+import { prisma } from "./prisma";
 import type {
   ChapterRecord,
   ImportJobRecord,

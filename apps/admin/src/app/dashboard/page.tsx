@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
 
-import { getUser, listAllNovels, listImportJobs } from "@xu-novel/lib";
+import { getAdminUser, listAllNovels, listImportJobs } from "@xu-novel/lib";
 import { Panel } from "@xu-novel/ui";
 
 import { AdminShell } from "../admin-shell";
 
 export default async function DashboardPage() {
-  const user = await getUser();
+  const user = await getAdminUser();
   if (!user) {
     redirect("/login?redirectedFrom=/dashboard");
   }

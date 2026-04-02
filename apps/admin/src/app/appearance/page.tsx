@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { getSiteSettings, getUser } from "@xu-novel/lib";
+import { getAdminUser, getSiteSettings } from "@xu-novel/lib";
 import { Button, Panel } from "@xu-novel/ui";
 
 import { AdminShell } from "../admin-shell";
@@ -9,7 +9,7 @@ import { ImageUploadField } from "../image-upload-field";
 import { saveAppearanceAction } from "./actions";
 
 export default async function AppearancePage() {
-  const user = await getUser();
+  const user = await getAdminUser();
   if (!user) {
     redirect("/login?redirectedFrom=/appearance");
   }
