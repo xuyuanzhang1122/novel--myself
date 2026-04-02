@@ -266,7 +266,7 @@ export function MarkdownEditor({
             type="button"
             title={action.title}
             onClick={() => handleToolbarAction(action)}
-            disabled={action.id === "image" && isUploadingImage}
+            disabled={action.kind === "custom" && action.id === "image" && isUploadingImage}
             className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-stone-400 transition hover:bg-stone-800 hover:text-stone-100 disabled:opacity-40"
           >
             {action.icon}

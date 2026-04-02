@@ -1,14 +1,28 @@
 # xu-novel
 
-私有小说阅读与发布平台。基于 pnpm monorepo 构建，包含两个 Next.js 15 应用：前台阅读站和后台编辑工作台，使用 Prisma + SQLite 作为数据层。
+私有小说阅读与发布平台。项目基于 pnpm monorepo 构建，包含两个 Next.js 15 应用：前台阅读站和后台编辑工作台，使用 Prisma + SQLite 作为数据层，并内置管理员账号密码登录。
 
 [English](./README.md)
 
 ## 快速开始
 
-### 一键安装
+### 用 curl 安装
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/xuyuanzhang1122/novel--myself/main/setup.sh | bash
+```
+
+如果你想先下载脚本再执行：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/xuyuanzhang1122/novel--myself/main/setup.sh -o setup.sh
+bash setup.sh
+```
+
+也可以先指定安装目录：
+
+```bash
+XU_NOVEL_INSTALL_DIR="$HOME/xu-novel" \
 curl -fsSL https://raw.githubusercontent.com/xuyuanzhang1122/novel--myself/main/setup.sh | bash
 ```
 
@@ -16,7 +30,7 @@ curl -fsSL https://raw.githubusercontent.com/xuyuanzhang1122/novel--myself/main/
 1. 检测操作系统（macOS / Linux / WSL）
 2. 安装 Node.js 20+ 和 pnpm（如果缺失）
 3. 克隆仓库并安装依赖
-4. 交互式生成 `.env.local` 配置文件
+4. 交互式生成 `.env.local` 配置文件和管理员账号
 5. 通过 Prisma 初始化 SQLite 数据库
 6. 执行构建验证
 
@@ -26,13 +40,49 @@ curl -fsSL https://raw.githubusercontent.com/xuyuanzhang1122/novel--myself/main/
 git clone https://github.com/xuyuanzhang1122/novel--myself.git xu-novel
 cd xu-novel
 pnpm install
-cp .env.example .env.local   # 编辑配置
+cat > .env.local <<'EOF'
+ADMIN_EMAIL=admin@local
+ADMIN_PASSWORD=novel123456
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_ADMIN_URL=http://localhost:3001
+SITE_REVALIDATE_URL=http://localhost:3000/api/revalidate
+SITE_REVALIDATE_SECRET=replace-with-a-random-secret
+AUTH_SESSION_SECRET=
+NEXT_PUBLIC_AUTH_COOKIE_DOMAIN=
+EOF
 pnpm --filter @xu-novel/lib exec prisma db push
 pnpm --filter @xu-novel/lib exec prisma generate
 pnpm dev
 ```
 
-### 访问地址
+也可以先复制 [`.env.example`](./.env.example) 再按需修改。
+
+## 启动方式
+
+### 开发模式
+
+```bash
+pnpm dev
+```
+
+这个 workspace 命令会同时启动两个应用：
+
+| 应用 | 地址 | 实际命令 |
+|------|------|----------|
+| 前台 | http://localhost:3000 | `pnpm --filter @xu-novel/site dev` |
+| 后台 | http://localhost:3001 | `pnpm --filter @xu-novel/admin dev` |
+
+### 生产模式
+
+```bash
+pnpm build
+pnpm --filter @xu-novel/site start
+pnpm --filter @xu-novel/admin start
+```
+
+生产模式下，两个 `start` 命令需要分两个终端执行。
+
+## 访问地址
 
 | 应用 | 地址 | 说明 |
 |------|------|------|
@@ -84,7 +134,8 @@ xu-novel/
 |------|------|------|
 | `ADMIN_EMAIL` | 是 | 管理员登录邮箱 |
 | `ADMIN_PASSWORD` | 否 | 管理员密码（默认 `novel123456`） |
-| `SITE_REVALIDATE_SECRET` | 否 | 跨应用缓存刷新密钥 |
+| `SITE_REVALIDATE_SECRET` | 是 | 跨应用缓存刷新密钥 |
+| `AUTH_SESSION_SECRET` | 否 | 独立的登录会话签名密钥 |
 | `NEXT_PUBLIC_AUTH_COOKIE_DOMAIN` | 否 | 生产环境共享 Cookie 域名 |
 
 ## 常用命令
@@ -92,6 +143,8 @@ xu-novel/
 ```bash
 pnpm dev        # 启动开发服务器（双应用）
 pnpm build      # 生产构建
+pnpm --filter @xu-novel/site start   # 构建后启动前台
+pnpm --filter @xu-novel/admin start  # 构建后启动后台
 pnpm lint       # ESLint 检查
 pnpm typecheck  # TypeScript 类型检查
 pnpm format     # Prettier 格式检查

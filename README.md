@@ -1,22 +1,36 @@
 # xu-novel
 
-Private novel reading & publishing platform. A monorepo with two Next.js 15 apps: a reader-facing site and an editorial admin workspace, backed by Prisma + SQLite.
+Private novel reading & publishing platform. It ships as a pnpm monorepo with two Next.js 15 apps: a reader-facing site and an editorial admin workspace, backed by Prisma + SQLite and a built-in password login.
 
 [中文文档](./README.zh-CN.md)
 
 ## Quick Start
 
-### One-command install
+### Install with curl
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/xuyuanzhang1122/novel--myself/main/setup.sh | bash
 ```
 
-The script will:
+If you prefer to inspect the script first:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/xuyuanzhang1122/novel--myself/main/setup.sh -o setup.sh
+bash setup.sh
+```
+
+You can also predefine the install directory:
+
+```bash
+XU_NOVEL_INSTALL_DIR="$HOME/xu-novel" \
+curl -fsSL https://raw.githubusercontent.com/xuyuanzhang1122/novel--myself/main/setup.sh | bash
+```
+
+The setup script will:
 1. Detect your OS (macOS / Linux / WSL)
 2. Install Node.js 20+ and pnpm if missing
 3. Clone the repo and install dependencies
-4. Generate `.env.local` with your admin credentials
+4. Generate `.env.local` interactively with your admin credentials
 5. Initialize the SQLite database via Prisma
 6. Run a build to verify everything works
 
@@ -26,13 +40,49 @@ The script will:
 git clone https://github.com/xuyuanzhang1122/novel--myself.git xu-novel
 cd xu-novel
 pnpm install
-cp .env.example .env.local   # edit with your settings
+cat > .env.local <<'EOF'
+ADMIN_EMAIL=admin@local
+ADMIN_PASSWORD=novel123456
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_ADMIN_URL=http://localhost:3001
+SITE_REVALIDATE_URL=http://localhost:3000/api/revalidate
+SITE_REVALIDATE_SECRET=replace-with-a-random-secret
+AUTH_SESSION_SECRET=
+NEXT_PUBLIC_AUTH_COOKIE_DOMAIN=
+EOF
 pnpm --filter @xu-novel/lib exec prisma db push
 pnpm --filter @xu-novel/lib exec prisma generate
 pnpm dev
 ```
 
-### Access
+You can also start from [`.env.example`](./.env.example) and then edit the values.
+
+## Start Modes
+
+### Development
+
+```bash
+pnpm dev
+```
+
+This starts both apps through Turborepo:
+
+| App | URL | Command behind the workspace script |
+|-----|-----|-------------------------------------|
+| Site | http://localhost:3000 | `pnpm --filter @xu-novel/site dev` |
+| Admin | http://localhost:3001 | `pnpm --filter @xu-novel/admin dev` |
+
+### Production
+
+```bash
+pnpm build
+pnpm --filter @xu-novel/site start
+pnpm --filter @xu-novel/admin start
+```
+
+Run the two `start` commands in separate terminals.
+
+## Access
 
 | App | URL | Description |
 |-----|-----|-------------|
@@ -84,7 +134,8 @@ See [`.env.example`](.env.example) for full reference.
 |----------|----------|-------------|
 | `ADMIN_EMAIL` | Yes | Admin login email |
 | `ADMIN_PASSWORD` | No | Admin password (default: `novel123456`) |
-| `SITE_REVALIDATE_SECRET` | No | Secret for cross-app cache invalidation |
+| `SITE_REVALIDATE_SECRET` | Yes | Secret for cross-app cache invalidation |
+| `AUTH_SESSION_SECRET` | No | Dedicated session signing secret |
 | `NEXT_PUBLIC_AUTH_COOKIE_DOMAIN` | No | Cookie domain for shared auth in production |
 
 ## Scripts
@@ -92,6 +143,8 @@ See [`.env.example`](.env.example) for full reference.
 ```bash
 pnpm dev        # Start both apps in dev mode
 pnpm build      # Production build
+pnpm --filter @xu-novel/site start   # Start the site after build
+pnpm --filter @xu-novel/admin start  # Start the admin app after build
 pnpm lint       # ESLint
 pnpm typecheck  # TypeScript check
 pnpm format     # Prettier check

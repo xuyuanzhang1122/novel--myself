@@ -3,6 +3,7 @@ set -euo pipefail
 
 # ─── xu-novel one-click setup ───────────────────────────────────────
 # curl -fsSL https://raw.githubusercontent.com/xuyuanzhang1122/novel--myself/main/setup.sh | bash
+# curl -fsSL https://raw.githubusercontent.com/xuyuanzhang1122/novel--myself/main/setup.sh -o setup.sh && bash setup.sh
 # ────────────────────────────────────────────────────────────────────
 
 RED='\033[0;31m'
@@ -12,6 +13,7 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 DEFAULT_REPO_URL="${XU_NOVEL_REPO_URL:-https://github.com/xuyuanzhang1122/novel--myself.git}"
+DEFAULT_INSTALL_DIR="${XU_NOVEL_INSTALL_DIR:-$HOME/xu-novel}"
 
 info()  { printf "${GREEN}[INFO]${NC}  %s\n" "$1"; }
 warn()  { printf "${YELLOW}[WARN]${NC}  %s\n" "$1"; }
@@ -129,9 +131,9 @@ ensure_pnpm() {
 
 choose_dir() {
   step "Choose installation directory"
-  printf "Install to [default: ~/xu-novel]: "
+  printf "Install to [default: %s]: " "$DEFAULT_INSTALL_DIR"
   read -r INSTALL_DIR <&3
-  INSTALL_DIR="${INSTALL_DIR:-$HOME/xu-novel}"
+  INSTALL_DIR="${INSTALL_DIR:-$DEFAULT_INSTALL_DIR}"
 }
 
 clone_and_install() {
@@ -256,6 +258,10 @@ print_summary() {
   printf "\n"
   printf "  ${CYAN}Start dev server:${NC}\n"
   printf "    cd %s && pnpm dev\n" "$INSTALL_DIR"
+  printf "\n"
+  printf "  ${CYAN}Start production servers:${NC}\n"
+  printf "    Terminal 1: cd %s && pnpm --filter @xu-novel/site start\n" "$INSTALL_DIR"
+  printf "    Terminal 2: cd %s && pnpm --filter @xu-novel/admin start\n" "$INSTALL_DIR"
   printf "\n"
   printf "  ${CYAN}Access:${NC}\n"
   printf "    Site (reader):  http://localhost:3000\n"
