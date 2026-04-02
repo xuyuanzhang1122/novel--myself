@@ -131,7 +131,7 @@ ensure_pnpm() {
 
 choose_dir() {
   step "Choose installation directory"
-  printf "Install to [default: %s]: " "$DEFAULT_INSTALL_DIR"
+  printf "Install to [default: %s]: " "$DEFAULT_INSTALL_DIR" > /dev/tty
   read -r INSTALL_DIR <&3
   INSTALL_DIR="${INSTALL_DIR:-$DEFAULT_INSTALL_DIR}"
 }
@@ -168,11 +168,11 @@ prompt_value() {
   local default_value="${2:-}"
   local result=""
   if [ -n "$default_value" ]; then
-    printf "%s [%s]: " "$prompt" "$default_value" >&2
+    printf "%s [%s]: " "$prompt" "$default_value" > /dev/tty
     read -r result <&3
     printf '%s' "${result:-$default_value}"
   else
-    printf "%s: " "$prompt" >&2
+    printf "%s: " "$prompt" > /dev/tty
     read -r result <&3
     printf '%s' "$result"
   fi
