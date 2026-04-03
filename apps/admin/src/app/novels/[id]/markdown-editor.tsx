@@ -5,26 +5,18 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import TurndownService from "turndown";
 
-import { Button } from "@xu-novel/ui";
+import { Button, cn } from "@xu-novel/ui";
 
 import { uploadFileToAdmin } from "../../upload-client";
-
-/* ------------------------------------------------------------------ */
-/*  Types                                                              */
-/* ------------------------------------------------------------------ */
 
 type MarkdownEditorProps = {
   initialValue: string;
   name: string;
-  /** Called when value changes (for controlled use from parent) */
   onChange?: (value: string) => void;
-  /** Height class, default "h-[70vh]" */
   heightClass?: string;
 };
 
-/* ------------------------------------------------------------------ */
-/*  Toolbar helpers                                                    */
-/* ------------------------------------------------------------------ */
+type EditorViewMode = "write" | "split" | "preview";
 
 type WrapAction = {
   label: string;
@@ -47,72 +39,66 @@ const TOOLBAR: WrapAction[] = [
   { label: "代码", icon: "`", title: "行内代码 (Ctrl+E)", kind: "wrap", before: "`", after: "`" },
   { label: "无序", icon: "•", title: "无序列表 (Ctrl+U)", kind: "line-prefix", prefix: "- " },
   { label: "有序", icon: "1.", title: "有序列表 (Ctrl+O)", kind: "line-prefix", prefix: "1. " },
-  { label: "分割", icon: "—", title: "分割线", kind: "custom", id: "hr" },
-  { label: "链接", icon: "🔗", title: "链接 (Ctrl+K)", kind: "custom", id: "link" },
-  { label: "图片", icon: "📷", title: "上传图片", kind: "custom", id: "image" },
+  { label: "分割", icon: "---", title: "分割线", kind: "custom", id: "hr" },
+  { label: "链接", icon: "链", title: "链接 (Ctrl+K)", kind: "custom", id: "link" },
+  { label: "图片", icon: "图", title: "上传图片", kind: "custom", id: "image" },
 ];
 
-/* ------------------------------------------------------------------ */
-/*  Turndown instance (lazy singleton)                                 */
-/* ------------------------------------------------------------------ */
+let turndownSingleton: TurndownService | null = null;
 
-let _turndown: TurndownService | null = null;
 function getTurndown() {
-  if (!_turndown) {
-    _turndown = new TurndownService({
+  if (!turndownSingleton) {
+    turndownSingleton = new TurndownService({
       headingStyle: "atx",
       codeBlockStyle: "fenced",
       bulletListMarker: "-",
     });
   }
-  return _turndown;
-}
 
-/* ------------------------------------------------------------------ */
-/*  Component                                                          */
-/* ------------------------------------------------------------------ */
+  return turndownSingleton;
+}
 
 export function MarkdownEditor({
   initialValue,
   name,
   onChange,
-  heightClass = "h-[70vh]",
+  heightClass = "h-[72vh]",
 }: MarkdownEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+
   const [value, setValue] = useState(initialValue);
   const [error, setError] = useState("");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [viewMode, setViewMode] = useState<EditorViewMode>("split");
 
-  // Keep parent in sync
   useEffect(() => {
     onChangeRef.current?.(value);
   }, [value]);
 
-  // Sync when initialValue changes from outside (e.g. chapter switching)
   useEffect(() => {
     setValue(initialValue);
   }, [initialValue]);
-
-  /* ---- Text manipulation helpers ---- */
 
   const getTextarea = useCallback(() => textareaRef.current, []);
 
   const insertAtCursor = useCallback(
     (snippet: string) => {
       setValue((current) => {
-        const ta = getTextarea();
-        if (!ta) return current + snippet;
-        const start = ta.selectionStart ?? current.length;
-        const end = ta.selectionEnd ?? current.length;
+        const textarea = getTextarea();
+        if (!textarea) return current + snippet;
+
+        const start = textarea.selectionStart ?? current.length;
+        const end = textarea.selectionEnd ?? current.length;
         const next = current.slice(0, start) + snippet + current.slice(end);
-        // Restore cursor after React re-render
+
         requestAnimationFrame(() => {
-          ta.selectionStart = ta.selectionEnd = start + snippet.length;
-          ta.focus();
+          textarea.selectionStart = textarea.selectionEnd = start + snippet.length;
+          textarea.focus();
         });
+
         return next;
       });
     },
@@ -121,18 +107,20 @@ export function MarkdownEditor({
 
   const wrapSelection = useCallback(
     (before: string, after: string) => {
-      const ta = getTextarea();
-      if (!ta) return;
-      const start = ta.selectionStart;
-      const end = ta.selectionEnd;
+      const textarea = getTextarea();
+      if (!textarea) return;
+
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
       const selected = value.slice(start, end) || "文本";
       const replacement = before + selected + after;
       const next = value.slice(0, start) + replacement + value.slice(end);
+
       setValue(next);
       requestAnimationFrame(() => {
-        ta.selectionStart = start + before.length;
-        ta.selectionEnd = start + before.length + selected.length;
-        ta.focus();
+        textarea.selectionStart = start + before.length;
+        textarea.selectionEnd = start + before.length + selected.length;
+        textarea.focus();
       });
     },
     [value, getTextarea],
@@ -140,61 +128,68 @@ export function MarkdownEditor({
 
   const prefixLines = useCallback(
     (prefix: string) => {
-      const ta = getTextarea();
-      if (!ta) return;
-      const start = ta.selectionStart;
-      const end = ta.selectionEnd;
-      // Find line boundaries
+      const textarea = getTextarea();
+      if (!textarea) return;
+
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
       const lineStart = value.lastIndexOf("\n", start - 1) + 1;
       const lineEnd = value.indexOf("\n", end);
       const actualEnd = lineEnd === -1 ? value.length : lineEnd;
       const selectedLines = value.slice(lineStart, actualEnd);
-
-      // Toggle: if all selected lines already have prefix, remove it
       const lines = selectedLines.split("\n");
-      const allPrefixed = lines.every((l) => l.startsWith(prefix));
-      const newLines = allPrefixed
-        ? lines.map((l) => l.slice(prefix.length))
-        : lines.map((l) => {
-            // Remove existing heading prefixes when adding a new one
+      const allPrefixed = lines.every((line) => line.startsWith(prefix));
+      const nextLines = allPrefixed
+        ? lines.map((line) => line.slice(prefix.length))
+        : lines.map((line) => {
             if (prefix.startsWith("#")) {
-              return prefix + l.replace(/^#{1,6}\s+/, "");
+              return prefix + line.replace(/^#{1,6}\s+/, "");
             }
-            return prefix + l;
+
+            return prefix + line;
           });
 
-      const replacement = newLines.join("\n");
+      const replacement = nextLines.join("\n");
       const next = value.slice(0, lineStart) + replacement + value.slice(actualEnd);
+
       setValue(next);
       requestAnimationFrame(() => {
-        ta.selectionStart = lineStart;
-        ta.selectionEnd = lineStart + replacement.length;
-        ta.focus();
+        textarea.selectionStart = lineStart;
+        textarea.selectionEnd = lineStart + replacement.length;
+        textarea.focus();
       });
     },
     [value, getTextarea],
   );
 
-  /* ---- Toolbar click handler ---- */
-
   function handleToolbarAction(action: WrapAction) {
     if (action.kind === "wrap") {
       wrapSelection(action.before, action.after);
-    } else if (action.kind === "line-prefix") {
+      return;
+    }
+
+    if (action.kind === "line-prefix") {
       prefixLines(action.prefix);
-    } else if (action.id === "hr") {
+      return;
+    }
+
+    if (action.id === "hr") {
       insertAtCursor("\n\n---\n\n");
-    } else if (action.id === "link") {
+      return;
+    }
+
+    if (action.id === "link") {
       wrapSelection("[", "](url)");
-    } else if (action.id === "image") {
+      return;
+    }
+
+    if (action.id === "image") {
       imageInputRef.current?.click();
     }
   }
 
-  /* ---- Keyboard shortcuts ---- */
-
-  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    const mod = e.metaKey || e.ctrlKey;
+  function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    const mod = event.metaKey || event.ctrlKey;
     if (!mod) return;
 
     const handlers: Record<string, () => void> = {
@@ -211,38 +206,34 @@ export function MarkdownEditor({
       "3": () => prefixLines("### "),
     };
 
-    const handler = handlers[e.key.toLowerCase()];
+    const handler = handlers[event.key.toLowerCase()];
     if (handler) {
-      e.preventDefault();
+      event.preventDefault();
       handler();
+      return;
     }
 
-    // Tab indent
-    if (e.key === "Tab") {
-      e.preventDefault();
+    if (event.key === "Tab") {
+      event.preventDefault();
       insertAtCursor("  ");
     }
   }
 
-  /* ---- Paste handler: convert HTML from Word/rich-text ---- */
+  function handlePaste(event: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const html = event.clipboardData.getData("text/html");
+    if (!html) return;
 
-  function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
-    const html = e.clipboardData.getData("text/html");
-    if (!html) return; // plain text paste, let browser handle it
-
-    // Check if it looks like rich content (has meaningful HTML tags)
     if (/<(p|h[1-6]|li|table|br|div|span|strong|em|b|i)\b/i.test(html)) {
-      e.preventDefault();
-      const md = getTurndown().turndown(html);
-      insertAtCursor(md);
+      event.preventDefault();
+      const markdown = getTurndown().turndown(html);
+      insertAtCursor(markdown);
     }
   }
-
-  /* ---- Image upload ---- */
 
   async function handleImageUpload(file: File) {
     setError("");
     setIsUploadingImage(true);
+
     try {
       const uploaded = await uploadFileToAdmin({ file, folder: "chapters" });
       insertAtCursor(`\n\n![${uploaded.fileName}](${uploaded.url})\n\n`);
@@ -254,64 +245,154 @@ export function MarkdownEditor({
     }
   }
 
-  /* ---- Render ---- */
+  const metrics = getEditorMetrics(value);
+  const showEditor = viewMode !== "preview";
+  const showPreview = viewMode !== "write";
 
   return (
-    <div className="space-y-3">
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-1 rounded-2xl border border-stone-800 bg-stone-950 px-2 py-1.5">
-        {TOOLBAR.map((action) => (
-          <button
-            key={action.label}
-            type="button"
-            title={action.title}
-            onClick={() => handleToolbarAction(action)}
-            disabled={action.kind === "custom" && action.id === "image" && isUploadingImage}
-            className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-stone-400 transition hover:bg-stone-800 hover:text-stone-100 disabled:opacity-40"
-          >
-            {action.icon}
-          </button>
-        ))}
-        <span className="mx-1 h-5 w-px bg-stone-800" />
-        <span className="text-[11px] text-stone-600">
-          {isUploadingImage ? "图片上传中..." : "粘贴 Word 内容可自动转换"}
-        </span>
+    <div className="space-y-4">
+      <div className="rounded-[1.75rem] border border-stone-800 bg-stone-950/80 px-3 py-3">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {TOOLBAR.map((action) => (
+              <button
+                className="rounded-xl px-2.5 py-1.5 text-xs font-medium text-stone-400 transition hover:bg-stone-800 hover:text-stone-100 disabled:opacity-40"
+                disabled={action.kind === "custom" && action.id === "image" && isUploadingImage}
+                key={action.label}
+                onClick={() => handleToolbarAction(action)}
+                title={action.title}
+                type="button"
+              >
+                {action.icon}
+              </button>
+            ))}
+            <span className="mx-1 hidden h-5 w-px bg-stone-800 sm:block" />
+            <span className="text-[11px] text-stone-600">
+              {isUploadingImage ? "图片上传中..." : "粘贴 Word 内容会自动转成 Markdown"}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {[
+              { id: "write", label: "写作" },
+              { id: "split", label: "分栏" },
+              { id: "preview", label: "预览" },
+            ].map((mode) => (
+              <button
+                className={cn(
+                  "rounded-full px-3 py-1.5 text-xs tracking-[0.18em] transition",
+                  viewMode === mode.id
+                    ? "bg-amber-200/16 text-amber-50"
+                    : "text-stone-400 hover:bg-stone-800 hover:text-stone-100",
+                )}
+                key={mode.id}
+                onClick={() => setViewMode(mode.id as EditorViewMode)}
+                type="button"
+              >
+                {mode.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* Hidden fields */}
-      <input type="hidden" name={name} value={value} />
+      <div className="grid gap-3 md:grid-cols-4">
+        <MetricCard label="正文字符" value={String(metrics.wordCount)} />
+        <MetricCard label="标题数量" value={String(metrics.headingCount)} />
+        <MetricCard label="段落块" value={String(metrics.paragraphCount)} />
+        <MetricCard label="预计阅读" value={`${metrics.readingMinutes} 分钟`} />
+      </div>
+
+      <input name={name} type="hidden" value={value} />
       <input
         accept="image/*"
         className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
+        onChange={(event) => {
+          const file = event.target.files?.[0];
           if (file) void handleImageUpload(file);
         }}
         ref={imageInputRef}
         type="file"
       />
 
-      {/* Editor + Preview */}
-      <div className="grid gap-4 xl:grid-cols-2">
-        <div className="min-w-0">
-          <textarea
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onPaste={handlePaste}
-            className={`${heightClass} max-h-[80vh] w-full resize-y rounded-[1.75rem] border border-stone-800 bg-stone-950 px-5 py-4 font-mono text-sm leading-7 text-stone-100 outline-none overflow-auto`}
-            ref={textareaRef}
-            value={value}
-          />
-          {error ? <p className="mt-2 text-sm text-amber-300">{error}</p> : null}
-        </div>
-        <div className="min-w-0">
-          <div className={`${heightClass} max-h-[80vh] overflow-auto rounded-[1.75rem] border border-stone-800 bg-stone-950`}>
-            <div className="prose prose-invert min-h-[320px] max-w-none px-5 py-4 text-sm leading-7 break-words [&_*]:break-words [&_img]:max-w-full [&_img]:rounded-2xl [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:whitespace-pre-wrap">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{value}</ReactMarkdown>
+      <div className={cn("grid gap-4", viewMode === "split" && "xl:grid-cols-2")}>
+        {showEditor ? (
+          <div className="min-w-0 overflow-hidden rounded-[1.75rem] border border-stone-800 bg-stone-950">
+            <div className="flex items-center justify-between border-b border-stone-800 px-5 py-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.24em] text-stone-500">写作区</p>
+                <p className="mt-1 text-sm text-stone-400">专注输入，快捷键和工具栏会作用在当前选区。</p>
+              </div>
+              <Button onClick={() => setViewMode("preview")} type="button" variant="ghost">
+                仅看预览
+              </Button>
+            </div>
+            <textarea
+              className={`${heightClass} max-h-[82vh] w-full resize-y overflow-auto bg-transparent px-5 py-4 font-mono text-sm leading-7 text-stone-100 outline-none`}
+              onChange={(event) => setValue(event.target.value)}
+              onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
+              ref={textareaRef}
+              value={value}
+            />
+          </div>
+        ) : null}
+
+        {showPreview ? (
+          <div className="min-w-0 overflow-hidden rounded-[1.75rem] border border-stone-800 bg-stone-950">
+            <div className="flex items-center justify-between border-b border-stone-800 px-5 py-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.24em] text-stone-500">阅读预览</p>
+                <p className="mt-1 text-sm text-stone-400">这里尽量接近前台阅读观感，不再只是黑底代码块。</p>
+              </div>
+              <Button onClick={() => setViewMode("write")} type="button" variant="ghost">
+                仅看正文
+              </Button>
+            </div>
+            <div className={`${heightClass} max-h-[82vh] overflow-auto bg-stone-900 px-4 py-4`}>
+              <div className="paper-noise min-h-full rounded-[1.5rem] border border-amber-200/60 px-6 py-6 text-stone-900 shadow-[0_30px_70px_-50px_rgba(0,0,0,0.35)]">
+                <div className="prose prose-stone max-w-none break-words font-serif text-[15px] leading-8 [&_*]:break-words [&_img]:max-w-full [&_img]:rounded-2xl [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:whitespace-pre-wrap">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{value}</ReactMarkdown>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        ) : null}
       </div>
+
+      {error ? <p className="rounded-xl bg-amber-950/30 px-4 py-3 text-sm text-amber-300">{error}</p> : null}
     </div>
   );
+}
+
+function MetricCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[1.4rem] border border-stone-800 bg-stone-900/70 px-4 py-4">
+      <p className="text-xs uppercase tracking-[0.24em] text-stone-500">{label}</p>
+      <p className="mt-3 font-serif text-3xl tracking-tight text-stone-100">{value}</p>
+    </div>
+  );
+}
+
+function getEditorMetrics(value: string) {
+  const plainText = value
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, " ")
+    .replace(/\[[^\]]*\]\([^)]+\)/g, " ")
+    .replace(/[>#*_`~-]/g, " ")
+    .replace(/\s+/g, "");
+
+  const wordCount = plainText.length;
+  const headingCount = (value.match(/^#{1,6}\s+/gm) ?? []).length;
+  const paragraphCount = value
+    .split(/\n{2,}/)
+    .map((section) => section.trim())
+    .filter(Boolean).length;
+
+  return {
+    wordCount,
+    headingCount,
+    paragraphCount,
+    readingMinutes: Math.max(1, Math.ceil(wordCount / 700)),
+  };
 }

@@ -31,6 +31,12 @@ export default async function ChapterPage({
   const user = await getUser();
   const chapters = await listChaptersForNovel(novel.id);
   const publishedChapters = chapters.filter((item) => item.status === "published");
+  const currentChapterIndex = publishedChapters.findIndex((item) => item.id === chapter.id);
+  const previousChapter = currentChapterIndex > 0 ? publishedChapters[currentChapterIndex - 1] : null;
+  const nextChapter =
+    currentChapterIndex >= 0 && currentChapterIndex < publishedChapters.length - 1
+      ? publishedChapters[currentChapterIndex + 1]
+      : null;
   const html = chapter.html_cache ?? (await markdownToHtml(chapter.markdown_content));
   const [history, preference] = await Promise.all([
     user ? getReadingHistory(user.id, novel.id) : Promise.resolve(null),
@@ -41,17 +47,55 @@ export default async function ChapterPage({
   return (
     <SiteShell heading={novel.title} subheading={chapter.title}>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_320px]">
-        <ReaderClient
-          anchorId={history?.anchor_id}
-          chapterId={chapter.id}
-          fallbackProgress={history?.fallback_progress}
-          html={html}
-          initialFontFamily={currentPreference.font_family}
-          initialFontScale={currentPreference.font_scale}
-          initialPageWidth={currentPreference.page_width}
-          initialTheme={currentPreference.theme}
-          novelId={novel.id}
-        />
+        <div className="space-y-6">
+          <ReaderClient
+            anchorId={history?.anchor_id}
+            chapterId={chapter.id}
+            fallbackProgress={history?.fallback_progress}
+            html={html}
+            initialFontFamily={currentPreference.font_family}
+            initialFontScale={currentPreference.font_scale}
+            initialPageWidth={currentPreference.page_width}
+            initialTheme={currentPreference.theme}
+            novelId={novel.id}
+          />
+
+          <Panel className="space-y-4 border-stone-200/80 bg-white/72 dark:border-stone-800/80 dark:bg-stone-950/70">
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">章节切换</p>
+              <h2 className="font-serif text-2xl tracking-tight">继续往前或往后</h2>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              {previousChapter ? (
+                <Link
+                  className="rounded-[1.6rem] border border-stone-200/80 bg-white/70 px-4 py-4 transition hover:-translate-y-0.5 hover:border-stone-500 hover:bg-white dark:border-stone-800/80 dark:bg-stone-900/50 dark:hover:border-stone-600 dark:hover:bg-stone-900"
+                  href={`/novel/${novel.slug}/chapter/${previousChapter.slug}`}
+                >
+                  <p className="text-xs uppercase tracking-[0.22em] text-stone-500">上一章</p>
+                  <p className="mt-2 font-serif text-xl tracking-tight">{previousChapter.title}</p>
+                </Link>
+              ) : (
+                <div className="rounded-[1.6rem] border border-dashed border-stone-200/80 px-4 py-4 text-sm text-stone-500 dark:border-stone-800/80 dark:text-stone-400">
+                  已经是第一章。
+                </div>
+              )}
+
+              {nextChapter ? (
+                <Link
+                  className="rounded-[1.6rem] border border-stone-200/80 bg-white/70 px-4 py-4 transition hover:-translate-y-0.5 hover:border-stone-500 hover:bg-white dark:border-stone-800/80 dark:bg-stone-900/50 dark:hover:border-stone-600 dark:hover:bg-stone-900"
+                  href={`/novel/${novel.slug}/chapter/${nextChapter.slug}`}
+                >
+                  <p className="text-xs uppercase tracking-[0.22em] text-stone-500">下一章</p>
+                  <p className="mt-2 font-serif text-xl tracking-tight">{nextChapter.title}</p>
+                </Link>
+              ) : (
+                <div className="rounded-[1.6rem] border border-dashed border-stone-200/80 px-4 py-4 text-sm text-stone-500 dark:border-stone-800/80 dark:text-stone-400">
+                  已经是最后一章。
+                </div>
+              )}
+            </div>
+          </Panel>
+        </div>
         <aside className="relative lg:block">
           <Panel className="h-fit space-y-4 lg:sticky lg:top-28 lg:max-h-[calc(100vh-8.5rem)] lg:overflow-hidden lg:self-start lg:border-stone-300/80 lg:bg-white/82 lg:transition lg:duration-300 lg:hover:-translate-y-1 lg:hover:shadow-[0_28px_80px_-42px_rgba(24,24,27,0.45)] dark:lg:border-stone-700/80 dark:lg:bg-stone-950/72">
             <div className="space-y-2">
@@ -63,7 +107,7 @@ export default async function ChapterPage({
                 </span>
               </div>
               <p className="text-sm leading-6 text-stone-500 dark:text-stone-400">
-                目录会随着阅读位置浮动，保持在右侧视野里。
+                当前是第 {currentChapterIndex + 1} 章，目录会固定在右侧方便切换。
               </p>
             </div>
 

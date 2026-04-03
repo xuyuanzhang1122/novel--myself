@@ -3,3 +3,116 @@
 html {
   scroll-behavior: smooth;
 }
+
+@layer utilities {
+  @keyframes auth-float {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+    50% {
+      transform: translate3d(0, -10px, 0);
+    }
+  }
+
+  @keyframes auth-orbit {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes auth-orbit-reverse {
+    from {
+      transform: rotate(360deg);
+    }
+    to {
+      transform: rotate(0deg);
+    }
+  }
+
+  @keyframes auth-pulse-soft {
+    0%,
+    100% {
+      opacity: 0.65;
+      transform: scale(0.96);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.04);
+    }
+  }
+
+  @keyframes auth-scan {
+    0%,
+    100% {
+      opacity: 0;
+    }
+    20%,
+    70% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes auth-grid-drift {
+    from {
+      background-position:
+        0 0,
+        0 0;
+    }
+    to {
+      background-position:
+        140px 70px,
+        140px 70px;
+    }
+  }
+
+  .auth-float {
+    animation: auth-float 7s ease-in-out infinite;
+  }
+
+  .auth-float-delayed {
+    animation: auth-float 8.5s ease-in-out -2.1s infinite;
+  }
+
+  .auth-float-slow {
+    animation: auth-float 9.8s ease-in-out -3.5s infinite;
+  }
+
+  .auth-orbit {
+    animation: auth-orbit 24s linear infinite;
+    transform-origin: center;
+  }
+
+  .auth-orbit-reverse {
+    animation: auth-orbit-reverse 18s linear infinite;
+    transform-origin: center;
+  }
+
+  .auth-pulse-soft {
+    animation: auth-pulse-soft 3.8s ease-in-out infinite;
+  }
+
+  .auth-scan {
+    animation: auth-scan 3.6s ease-in-out infinite;
+  }
+
+  .auth-scan-delay {
+    animation: auth-scan 3.6s ease-in-out 1.1s infinite;
+  }
+
+  .auth-scan-reverse {
+    animation: auth-scan 3.6s ease-in-out 2.2s infinite;
+  }
+
+  .auth-grid-drift {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 120px 120px;
+    animation: auth-grid-drift 24s linear infinite;
+    mask-image: radial-gradient(circle at center, black 34%, transparent 85%);
+  }
+}

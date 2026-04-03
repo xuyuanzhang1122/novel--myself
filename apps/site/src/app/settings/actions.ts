@@ -2,7 +2,18 @@
 
 import { redirect } from "next/navigation";
 
-import { getUser, saveReaderPreference } from "@xu-novel/lib";
+import {
+  changePassword,
+  deleteOwnAccount,
+  getUser,
+  saveReaderPreference,
+  signOut,
+} from "@xu-novel/lib";
+
+export type AccountActionState = {
+  error: string | null;
+  message: string | null;
+};
 
 function pickValue<T extends string>(
   value: FormDataEntryValue | null,
@@ -51,4 +62,71 @@ export async function saveReaderPreferenceAction(formData: FormData) {
   });
 
   redirect("/settings?saved=1");
+}
+
+export async function changePasswordAction(
+  _prevState: AccountActionState,
+  formData: FormData,
+): Promise<AccountActionState> {
+  const user = await getUser();
+  if (!user) {
+    redirect("/login?redirectedFrom=/settings");
+  }
+
+  const nextPassword = formData.get("next_password")?.toString() ?? "";
+  const confirmPassword = formData.get("confirm_password")?.toString() ?? "";
+
+  if (nextPassword !== confirmPassword) {
+    return {
+      error: "两次输入的新密码不一致。",
+      message: null,
+    };
+  }
+
+  try {
+    await changePassword(
+      user.id,
+      formData.get("current_password")?.toString() ?? "",
+      nextPassword,
+    );
+
+    return {
+      error: null,
+      message: "密码已更新。",
+    };
+  } catch (error: any) {
+    return {
+      error: error?.message ?? "密码更新失败，请稍后重试。",
+      message: null,
+    };
+  }
+}
+
+export async function deleteAccountAction(
+  _prevState: AccountActionState,
+  formData: FormData,
+): Promise<AccountActionState> {
+  const user = await getUser();
+  if (!user) {
+    redirect("/login?redirectedFrom=/settings");
+  }
+
+  if ((formData.get("confirmation")?.toString() ?? "").trim() !== user.email) {
+    return {
+      error: "请输入当前邮箱以确认删除账号。",
+      message: null,
+    };
+  }
+
+  try {
+    await deleteOwnAccount(user.id, formData.get("password")?.toString() ?? "");
+    await signOut();
+  } catch (error: any) {
+    return {
+      error: error?.message ?? "删除账号失败，请稍后重试。",
+      message: null,
+    };
+  }
+
+  redirect("/login");
 }

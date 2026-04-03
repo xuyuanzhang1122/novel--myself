@@ -6,6 +6,7 @@ import {
   createUser,
   deleteUser,
   getAdminUser,
+  resetUserPassword,
   updateUserRole,
   type UserRole,
 } from "@xu-novel/lib";
@@ -62,5 +63,22 @@ export async function deleteUserAction(formData: FormData): Promise<AdminActionR
   return {
     ok: true,
     message: "用户已删除。",
+  };
+}
+
+export async function updateUserPasswordAction(formData: FormData): Promise<AdminActionResult> {
+  const user = await getAdminUser();
+  if (!user) {
+    redirect("/login?redirectedFrom=/users");
+  }
+
+  await resetUserPassword(
+    formData.get("user_id")?.toString() ?? "",
+    formData.get("password")?.toString() ?? "",
+  );
+
+  return {
+    ok: true,
+    message: "密码已重置。",
   };
 }

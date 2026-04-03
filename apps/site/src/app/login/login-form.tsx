@@ -4,7 +4,7 @@ import { useEffect, useState, useActionState } from "react";
 import type { ChangeEvent } from "react";
 import { useFormStatus } from "react-dom";
 
-import { Button, Input, Panel } from "@xu-novel/ui";
+import { Button, Input, Panel, cn } from "@xu-novel/ui";
 
 import {
   type AuthFormState,
@@ -12,6 +12,7 @@ import {
   sendRegisterCodeAction,
   signInAction,
 } from "../auth-actions";
+import { AuthStage } from "./auth-stage";
 
 const initialState: AuthFormState = {
   error: null,
@@ -27,6 +28,16 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
   const [loginState, loginFormAction] = useActionState(signInAction, initialState);
   const [codeState, sendCodeFormAction] = useActionState(sendRegisterCodeAction, initialState);
   const [registerState, registerFormAction] = useActionState(registerAction, initialState);
+
+  const switchMode = (nextMode: ViewMode) => {
+    setViewMode(nextMode);
+
+    if (typeof window === "undefined") return;
+
+    const url = new URL(window.location.href);
+    url.hash = nextMode === "register" ? "register" : "";
+    window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  };
 
   useEffect(() => {
     if (window.location.hash === "#register") {
@@ -68,32 +79,69 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
   }, [sendCooldown]);
 
   return (
-    <Panel
-      id={viewMode === "register" ? "register" : undefined}
-      className="w-full max-w-[430px] space-y-6 rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(20,18,16,0.94),rgba(10,10,10,0.98))] p-5 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.8)] sm:p-6"
-      tone="ink"
-    >
-      {viewMode === "login" ? (
-        <LoginCard
-          loginFormAction={loginFormAction}
-          loginState={loginState}
-          onSwitchToRegister={() => setViewMode("register")}
-          redirectTo={redirectTo}
-        />
-      ) : (
-        <RegisterCard
-          codeState={codeState}
-          email={registerEmail}
-          onEmailChange={(event) => setRegisterEmail(event.target.value)}
-          onSwitchToLogin={() => setViewMode("login")}
-          redirectTo={redirectTo}
-          registerFormAction={registerFormAction}
-          registerState={registerState}
-          sendCooldown={sendCooldown}
-          sendCodeFormAction={sendCodeFormAction}
-        />
-      )}
-    </Panel>
+    <div className="mx-auto grid w-full max-w-6xl gap-4 lg:min-h-[calc(100vh-4rem)] lg:grid-cols-[minmax(0,1.08fr)_430px] lg:items-stretch">
+      <AuthStage
+        codeMessage={codeState.message}
+        email={registerEmail}
+        registerMessage={registerState.message}
+        sendCooldown={sendCooldown}
+        viewMode={viewMode}
+      />
+
+      <Panel
+        id={viewMode === "register" ? "register" : undefined}
+        className="order-1 flex w-full max-w-[430px] flex-col gap-5 self-start rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(20,18,16,0.94),rgba(10,10,10,0.98))] p-5 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.8)] sm:p-6 lg:order-2 lg:my-8 lg:ml-auto"
+        tone="ink"
+      >
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <p className="text-[11px] uppercase tracking-[0.3em] text-stone-500">账号入口</p>
+            <h2 className="font-serif text-3xl tracking-tight text-stone-50 sm:text-[2.4rem]">
+              {viewMode === "register" ? "完成注册" : "进入书库"}
+            </h2>
+            <p className="text-sm leading-7 text-stone-300">
+              {viewMode === "register"
+                ? "把邮箱、验证码和密码填完就结束，不再额外讲故事。"
+                : "已有账号直接登录，新账号切到注册页拿验证码。"}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 rounded-[1.2rem] border border-white/10 bg-white/[0.04] p-1">
+            <ModeButton
+              active={viewMode === "login"}
+              label="登录"
+              onClick={() => switchMode("login")}
+            />
+            <ModeButton
+              active={viewMode === "register"}
+              label="注册"
+              onClick={() => switchMode("register")}
+            />
+          </div>
+        </div>
+
+        {viewMode === "login" ? (
+          <LoginCard
+            loginFormAction={loginFormAction}
+            loginState={loginState}
+            onSwitchToRegister={() => switchMode("register")}
+            redirectTo={redirectTo}
+          />
+        ) : (
+          <RegisterCard
+            codeState={codeState}
+            email={registerEmail}
+            onEmailChange={(event) => setRegisterEmail(event.target.value)}
+            onSwitchToLogin={() => switchMode("login")}
+            redirectTo={redirectTo}
+            registerFormAction={registerFormAction}
+            registerState={registerState}
+            sendCooldown={sendCooldown}
+            sendCodeFormAction={sendCodeFormAction}
+          />
+        )}
+      </Panel>
+    </div>
   );
 }
 
@@ -112,19 +160,14 @@ function LoginCard({
     <>
       <div className="space-y-2">
         <p className="text-[11px] uppercase tracking-[0.3em] text-stone-500">登录</p>
-        <h2 className="font-serif text-3xl tracking-tight text-stone-50 sm:text-[2.25rem]">
-          进入书库
-        </h2>
-        <p className="text-sm leading-7 text-stone-300">
-          使用邮箱和密码登录后，才能进入作品详情、章节目录与阅读器。
-        </p>
+        <p className="text-sm leading-7 text-stone-300">邮箱和密码通过后，直接回到书库。</p>
       </div>
 
-      <form action={loginFormAction} className="space-y-4">
+      <form action={loginFormAction} className="space-y-3.5">
         <input name="redirect_to" type="hidden" value={redirectTo ?? "/library"} />
         <Input
           autoComplete="email"
-          className="rounded-[1.35rem] border-white/10 bg-white/[0.06] px-4 py-3.5 text-stone-100 placeholder:text-stone-500 dark:border-white/10 dark:bg-white/[0.06]"
+          className={authInputClassName}
           name="email"
           placeholder="邮箱"
           required
@@ -132,7 +175,7 @@ function LoginCard({
         />
         <Input
           autoComplete="current-password"
-          className="rounded-[1.35rem] border-white/10 bg-white/[0.06] px-4 py-3.5 text-stone-100 placeholder:text-stone-500 dark:border-white/10 dark:bg-white/[0.06]"
+          className={authInputClassName}
           name="password"
           placeholder="密码"
           required
@@ -146,7 +189,7 @@ function LoginCard({
         />
       </form>
 
-      <div className="rounded-[1.35rem] border border-white/8 bg-white/[0.03] px-4 py-4 text-sm text-stone-300">
+      <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.03] px-4 py-4 text-sm text-stone-300">
         <span className="text-stone-500">还没有账号？</span>{" "}
         <button
           className="font-medium text-stone-100 underline decoration-stone-500/60 underline-offset-4 transition hover:text-white"
@@ -186,13 +229,24 @@ function RegisterCard({
 
   return (
     <>
-      <div className="space-y-2">
-        <p className="text-[11px] uppercase tracking-[0.3em] text-stone-500">注册</p>
-        <h2 className="font-serif text-3xl tracking-tight text-stone-50 sm:text-[2.25rem]">
-          邮箱验证码注册
-        </h2>
+      <div className="space-y-3">
+        <div className="flex flex-wrap gap-2 text-[11px] tracking-[0.22em]">
+          {["邮箱", "验证码", "密码"].map((step, index) => (
+            <span
+              className={cn(
+                "rounded-full border px-3 py-1.5",
+                (index === 0 && hasEmail) || (index === 1 && codeState.message) || index === 2
+                  ? "border-amber-200/35 bg-amber-200/12 text-amber-50"
+                  : "border-white/10 bg-white/[0.04] text-stone-400",
+              )}
+              key={step}
+            >
+              {step}
+            </span>
+          ))}
+        </div>
         <p className="text-sm leading-7 text-stone-300">
-          先发送验证码，再填写验证码和密码完成注册。注册成功后会直接进入书库。
+          输入邮箱，先拿验证码，再设置密码。完成后直接进入书库。
         </p>
       </div>
 
@@ -203,7 +257,7 @@ function RegisterCard({
             <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_148px]">
               <Input
                 autoComplete="email"
-                className="rounded-[1.35rem] border-white/10 bg-white/[0.06] px-4 py-3.5 text-stone-100 placeholder:text-stone-500 dark:border-white/10 dark:bg-white/[0.06]"
+                className={authInputClassName}
                 name="email"
                 placeholder="注册邮箱"
                 required
@@ -228,14 +282,14 @@ function RegisterCard({
         <form action={registerFormAction} className="space-y-4">
           <input name="redirect_to" type="hidden" value={redirectTo ?? "/library"} />
           <input name="email" type="hidden" value={normalizedEmail} />
-          <div className="rounded-[1.35rem] border border-white/8 bg-white/[0.03] px-4 py-4">
-            <p className="text-[11px] uppercase tracking-[0.24em] text-stone-500">注册邮箱</p>
-            <p className="mt-2 text-sm leading-7 text-stone-200">
+          <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.03] px-4 py-3.5">
+            <p className="text-[11px] uppercase tracking-[0.24em] text-stone-500">验证码接收邮箱</p>
+            <p className="mt-2 truncate text-sm leading-7 text-stone-200">
               {hasEmail ? normalizedEmail : "先在上方输入邮箱并发送验证码。"}
             </p>
           </div>
           <Input
-            className="rounded-[1.35rem] border-white/10 bg-white/[0.06] px-4 py-3.5 text-stone-100 placeholder:text-stone-500 dark:border-white/10 dark:bg-white/[0.06]"
+            className={authInputClassName}
             inputMode="numeric"
             maxLength={6}
             name="code"
@@ -243,22 +297,24 @@ function RegisterCard({
             required
             type="text"
           />
-          <Input
-            autoComplete="new-password"
-            className="rounded-[1.35rem] border-white/10 bg-white/[0.06] px-4 py-3.5 text-stone-100 placeholder:text-stone-500 dark:border-white/10 dark:bg-white/[0.06]"
-            name="password"
-            placeholder="密码（至少 8 位）"
-            required
-            type="password"
-          />
-          <Input
-            autoComplete="new-password"
-            className="rounded-[1.35rem] border-white/10 bg-white/[0.06] px-4 py-3.5 text-stone-100 placeholder:text-stone-500 dark:border-white/10 dark:bg-white/[0.06]"
-            name="confirm_password"
-            placeholder="确认密码"
-            required
-            type="password"
-          />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input
+              autoComplete="new-password"
+              className={authInputClassName}
+              name="password"
+              placeholder="密码（至少 8 位）"
+              required
+              type="password"
+            />
+            <Input
+              autoComplete="new-password"
+              className={authInputClassName}
+              name="confirm_password"
+              placeholder="确认密码"
+              required
+              type="password"
+            />
+          </div>
           {registerState.message ? (
             <FormMessage tone="success">{registerState.message}</FormMessage>
           ) : null}
@@ -274,7 +330,7 @@ function RegisterCard({
         </form>
       </div>
 
-      <div className="rounded-[1.35rem] border border-white/8 bg-white/[0.03] px-4 py-4 text-sm text-stone-300">
+      <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.03] px-4 py-4 text-sm text-stone-300">
         <span className="text-stone-500">已经有账号？</span>{" "}
         <button
           className="font-medium text-stone-100 underline decoration-stone-500/60 underline-offset-4 transition hover:text-white"
@@ -285,6 +341,31 @@ function RegisterCard({
         </button>
       </div>
     </>
+  );
+}
+
+function ModeButton({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className={cn(
+        "rounded-[1rem] px-4 py-2.5 text-sm transition",
+        active
+          ? "bg-amber-200/14 text-amber-50 shadow-[inset_0_0_0_1px_rgba(253,230,138,0.22)]"
+          : "text-stone-400 hover:bg-white/[0.05] hover:text-stone-100",
+      )}
+      onClick={onClick}
+      type="button"
+    >
+      {label}
+    </button>
   );
 }
 
@@ -358,3 +439,6 @@ function CooldownSubmitButton({
     </Button>
   );
 }
+
+const authInputClassName =
+  "rounded-[1.25rem] border-white/10 bg-white/[0.04] px-4 py-3.5 text-stone-100 placeholder:text-stone-500 focus:border-amber-200/30 focus:bg-white/[0.07] dark:border-white/10 dark:bg-white/[0.04]";

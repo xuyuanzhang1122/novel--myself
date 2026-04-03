@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useMemo, useState } from "react";
 
-import { Button, Panel } from "@xu-novel/ui";
+import { Button, Panel, cn } from "@xu-novel/ui";
 
 import { MarkdownEditor } from "../../novels/[id]/markdown-editor";
 
@@ -34,14 +34,9 @@ export function ChapterImportForm({
 
   const active = chapters[activeIndex];
 
-  const updateChapter = useCallback(
-    (index: number, partial: Partial<ChapterData>) => {
-      setChapters((prev) =>
-        prev.map((ch, i) => (i === index ? { ...ch, ...partial } : ch)),
-      );
-    },
-    [],
-  );
+  const updateChapter = useCallback((index: number, partial: Partial<ChapterData>) => {
+    setChapters((prev) => prev.map((chapter, currentIndex) => (currentIndex === index ? { ...chapter, ...partial } : chapter)));
+  }, []);
 
   function addChapter() {
     const newIndex = chapters.length;
@@ -54,7 +49,8 @@ export function ChapterImportForm({
 
   function removeChapter(index: number) {
     if (chapters.length <= 1) return;
-    setChapters((prev) => prev.filter((_, i) => i !== index));
+
+    setChapters((prev) => prev.filter((_, currentIndex) => currentIndex !== index));
     if (activeIndex >= index && activeIndex > 0) {
       setActiveIndex(activeIndex - 1);
     } else if (activeIndex >= chapters.length - 1) {
@@ -62,104 +58,98 @@ export function ChapterImportForm({
     }
   }
 
-  // Generate a stable key for each chapter to force React remount on switch
   const activeKey = `import-ch-${activeIndex}-${chapters.length}`;
+  const chapterMetrics = useMemo(
+    () =>
+      chapters.map((chapter) => ({
+        words: chapter.content.replace(/\s+/g, "").length,
+      })),
+    [chapters],
+  );
 
   return (
     <div className="space-y-5">
-      {/* hidden fields that carry all chapter data to the form action */}
-      <input type="hidden" name="chapter_count" value={chapters.length} />
-      {chapters.map((ch, i) => (
-        <div key={i}>
-          <input type="hidden" name={`chapter_title_${i}`} value={ch.title} />
-          <input type="hidden" name={`chapter_slug_${i}`} value={ch.slug} />
-          <input
-            type="hidden"
-            name={`chapter_content_${i}`}
-            value={ch.content}
-          />
+      <input name="chapter_count" type="hidden" value={chapters.length} />
+      {chapters.map((chapter, index) => (
+        <div key={index}>
+          <input name={`chapter_title_${index}`} type="hidden" value={chapter.title} />
+          <input name={`chapter_slug_${index}`} type="hidden" value={chapter.slug} />
+          <input name={`chapter_content_${index}`} type="hidden" value={chapter.content} />
         </div>
       ))}
 
-      {/* chapter tabs */}
-      <div className="flex flex-wrap items-center gap-2">
-        {chapters.map((ch, i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={() => setActiveIndex(i)}
-            className={`rounded-full px-4 py-1.5 text-sm transition ${
-              i === activeIndex
-                ? "bg-stone-100 text-stone-950"
-                : "bg-stone-800 text-stone-300 hover:bg-stone-700"
-            }`}
-          >
-            {ch.title || `章节 ${i + 1}`}
-          </button>
-        ))}
-        <button
-          type="button"
-          onClick={addChapter}
-          className="rounded-full border border-dashed border-stone-600 px-4 py-1.5 text-sm text-stone-400 transition hover:border-stone-400 hover:text-stone-200"
-        >
-          + 新增章节
-        </button>
-      </div>
+      <div className="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)]">
+        <div className="space-y-3">
+          <Button className="w-full" onClick={addChapter} type="button" variant="secondary">
+            + 新增章节
+          </Button>
 
-      {/* active chapter editor */}
-      {active && (
-        <Panel className="space-y-4 border-stone-800 bg-stone-900/70">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h4 className="font-serif text-2xl">
-              第 {activeIndex + 1} 章
-            </h4>
-            {chapters.length > 1 && (
-              <Button
+          <div className="space-y-3 xl:max-h-[calc(100vh-22rem)] xl:overflow-y-auto xl:pr-1">
+            {chapters.map((chapter, index) => (
+              <button
+                className={cn(
+                  "w-full rounded-[1.5rem] border p-4 text-left transition",
+                  index === activeIndex
+                    ? "border-amber-200/20 bg-amber-200/10"
+                    : "border-stone-800 bg-stone-950/60 hover:-translate-y-0.5 hover:border-stone-700 hover:bg-stone-950",
+                )}
+                key={`${chapter.slug}-${index}`}
+                onClick={() => setActiveIndex(index)}
                 type="button"
-                variant="ghost"
-                onClick={() => removeChapter(activeIndex)}
               >
-                删除此章
-              </Button>
-            )}
+                <p className="text-xs uppercase tracking-[0.18em] text-stone-500">第 {index + 1} 章</p>
+                <p className="mt-2 line-clamp-2 font-serif text-xl tracking-tight text-stone-100">
+                  {chapter.title || `章节 ${index + 1}`}
+                </p>
+                <p className="mt-2 text-xs text-stone-500">{chapterMetrics[index]?.words ?? 0} 字</p>
+              </button>
+            ))}
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <input
-              key={`title-${activeKey}`}
-              className="rounded-2xl bg-stone-950 px-4 py-3"
-              defaultValue={active.title}
-              onChange={(e) =>
-                updateChapter(activeIndex, {
-                  title: e.target.value,
-                  slug: slugify(e.target.value, `chapter-${activeIndex + 1}`),
-                })
-              }
-              placeholder="章节标题"
-            />
-            <input
-              key={`slug-${activeKey}`}
-              className="rounded-2xl bg-stone-950 px-4 py-3"
-              defaultValue={active.slug}
-              onChange={(e) =>
-                updateChapter(activeIndex, { slug: e.target.value })
-              }
-              placeholder="章节 slug"
-            />
-          </div>
+        </div>
 
-          <MarkdownEditor
-            key={activeKey}
-            initialValue={active.content}
-            name={`__editor_content_${activeIndex}`}
-            onChange={(val) => updateChapter(activeIndex, { content: val })}
-            heightClass="h-[60vh]"
-          />
-        </Panel>
-      )}
+        {active ? (
+          <Panel className="space-y-4 border-stone-800 bg-stone-900/70">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h4 className="font-serif text-2xl tracking-tight">第 {activeIndex + 1} 章</h4>
+              {chapters.length > 1 ? (
+                <Button onClick={() => removeChapter(activeIndex)} type="button" variant="ghost">
+                  删除此章
+                </Button>
+              ) : null}
+            </div>
 
-      <p className="text-sm text-stone-500">
-        共 {chapters.length} 个章节。点击标签可切换章节进行校对。
-      </p>
+            <div className="grid gap-4 md:grid-cols-2">
+              <input
+                className="rounded-2xl border border-stone-800 bg-stone-950 px-4 py-3"
+                defaultValue={active.title}
+                key={`title-${activeKey}`}
+                onChange={(event) =>
+                  updateChapter(activeIndex, {
+                    title: event.target.value,
+                    slug: slugify(event.target.value, `chapter-${activeIndex + 1}`),
+                  })
+                }
+                placeholder="章节标题"
+              />
+              <input
+                className="rounded-2xl border border-stone-800 bg-stone-950 px-4 py-3"
+                defaultValue={active.slug}
+                key={`slug-${activeKey}`}
+                onChange={(event) => updateChapter(activeIndex, { slug: event.target.value })}
+                placeholder="章节 slug"
+              />
+            </div>
+
+            <MarkdownEditor
+              heightClass="h-[62vh]"
+              initialValue={active.content}
+              key={activeKey}
+              name={`__editor_content_${activeIndex}`}
+              onChange={(value) => updateChapter(activeIndex, { content: value })}
+            />
+          </Panel>
+        ) : null}
+      </div>
     </div>
   );
 }

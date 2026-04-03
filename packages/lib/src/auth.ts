@@ -232,6 +232,23 @@ async function countOtherActiveAdmins(userId: string) {
   });
 }
 
+async function deleteUserArtifacts(userId: string, email: string) {
+  await prisma.$transaction([
+    prisma.emailVerificationCode.deleteMany({
+      where: { email },
+    }),
+    prisma.readerPreference.deleteMany({
+      where: { userId },
+    }),
+    prisma.readingHistory.deleteMany({
+      where: { userId },
+    }),
+    prisma.user.delete({
+      where: { id: userId },
+    }),
+  ]);
+}
+
 async function ensureBootstrapAdminUser() {
   const email = getAdminEmail();
   const password = getAdminPassword();
@@ -546,6 +563,80 @@ export async function updateUserRole(userId: string, role: UserRole) {
   return mapUser(updatedUser);
 }
 
+export async function resetUserPassword(userId: string, password: string) {
+  await ensureBootstrapAdminUser();
+
+  const user = await getUserById(userId);
+  if (!user) {
+    throw new Error("用户不存在。");
+  }
+
+  validatePassword(password);
+
+  const updatedUser = await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      passwordHash: hashPassword(password),
+    },
+  });
+
+  return mapUser(updatedUser);
+}
+
+export async function changePassword(
+  userId: string,
+  currentPassword: string,
+  nextPassword: string,
+) {
+  await ensureBootstrapAdminUser();
+
+  const user = await getUserById(userId);
+  if (!user || user.status !== "ACTIVE") {
+    throw new Error("用户不存在。");
+  }
+
+  if (!verifyPassword(currentPassword, user.passwordHash)) {
+    throw new Error("当前密码不正确。");
+  }
+
+  validatePassword(nextPassword);
+
+  if (verifyPassword(nextPassword, user.passwordHash)) {
+    throw new Error("新密码不能与当前密码相同。");
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      passwordHash: hashPassword(nextPassword),
+    },
+  });
+
+  return mapUser(updatedUser);
+}
+
+export async function deleteOwnAccount(userId: string, password: string) {
+  await ensureBootstrapAdminUser();
+
+  const user = await getUserById(userId);
+  if (!user || user.status !== "ACTIVE") {
+    throw new Error("用户不存在。");
+  }
+
+  if (!verifyPassword(password, user.passwordHash)) {
+    throw new Error("当前密码不正确。");
+  }
+
+  if (user.role === "ADMIN") {
+    const otherAdminCount = await countOtherActiveAdmins(user.id);
+    if (otherAdminCount === 0) {
+      throw new Error("至少需要保留一个管理员。");
+    }
+  }
+
+  await deleteUserArtifacts(user.id, user.email);
+}
+
 export async function deleteUser(userId: string, currentUserId: string) {
   await ensureBootstrapAdminUser();
 
@@ -565,13 +656,7 @@ export async function deleteUser(userId: string, currentUserId: string) {
     }
   }
 
-  await prisma.emailVerificationCode.deleteMany({
-    where: { email: user.email },
-  });
-
-  await prisma.user.delete({
-    where: { id: user.id },
-  });
+  await deleteUserArtifacts(user.id, user.email);
 }
 
 export async function signOut() {
