@@ -103,10 +103,10 @@ export default async function ImportDetailPage({
           </div>
         </Panel>
 
-        <FormWithError action={createNovelFromImportAction} className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <FormWithError action={createNovelFromImportAction} className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_360px]">
           <input name="import_job_id" type="hidden" value={job.id} />
 
-          <div className="space-y-5">
+          <div className="min-w-0 space-y-5">
             <Panel className="space-y-5 border-stone-800 bg-stone-900/70">
               <h3 className="font-serif text-3xl tracking-tight">作品信息</h3>
               <div className="grid gap-4 md:grid-cols-2">
@@ -162,7 +162,7 @@ export default async function ImportDetailPage({
             </Panel>
           </div>
 
-          <div className="space-y-5 xl:sticky xl:top-4 xl:self-start">
+          <div className="space-y-5 2xl:sticky 2xl:top-4 2xl:self-start">
             <Panel className="space-y-4 border-stone-800 bg-stone-900/70">
               <p className="text-xs uppercase tracking-[0.28em] text-stone-500">生成前检查</p>
               <div className="space-y-3 text-sm leading-7 text-stone-300">

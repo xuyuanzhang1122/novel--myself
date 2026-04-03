@@ -62,7 +62,7 @@ export function MarkdownEditor({
   initialValue,
   name,
   onChange,
-  heightClass = "h-[72vh]",
+  heightClass = "h-[76vh]",
 }: MarkdownEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
@@ -72,7 +72,9 @@ export function MarkdownEditor({
   const [value, setValue] = useState(initialValue);
   const [error, setError] = useState("");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [viewMode, setViewMode] = useState<EditorViewMode>("split");
+  const [viewMode, setViewMode] = useState<EditorViewMode>("write");
+  const [isToolbarOpen, setIsToolbarOpen] = useState(true);
+  const [isStatsOpen, setIsStatsOpen] = useState(false);
 
   useEffect(() => {
     onChangeRef.current?.(value);
@@ -252,56 +254,82 @@ export function MarkdownEditor({
   return (
     <div className="space-y-4">
       <div className="rounded-[1.75rem] border border-stone-800 bg-stone-950/80 px-3 py-3">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex flex-wrap items-center gap-1.5">
-            {TOOLBAR.map((action) => (
-              <button
-                className="rounded-xl px-2.5 py-1.5 text-xs font-medium text-stone-400 transition hover:bg-stone-800 hover:text-stone-100 disabled:opacity-40"
-                disabled={action.kind === "custom" && action.id === "image" && isUploadingImage}
-                key={action.label}
-                onClick={() => handleToolbarAction(action)}
-                title={action.title}
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                onClick={() => setIsToolbarOpen((current) => !current)}
                 type="button"
+                variant="ghost"
               >
-                {action.icon}
-              </button>
-            ))}
-            <span className="mx-1 hidden h-5 w-px bg-stone-800 sm:block" />
-            <span className="text-[11px] text-stone-600">
-              {isUploadingImage ? "图片上传中..." : "粘贴 Word 内容会自动转成 Markdown"}
-            </span>
+                {isToolbarOpen ? "收起格式工具" : "展开格式工具"}
+              </Button>
+              <Button
+                onClick={() => setIsStatsOpen((current) => !current)}
+                type="button"
+                variant="ghost"
+              >
+                {isStatsOpen ? "收起数据面板" : "展开数据面板"}
+              </Button>
+              <span className="text-[11px] text-stone-600">
+                {isUploadingImage ? "图片上传中..." : "粘贴 Word 内容会自动转成 Markdown"}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {[
+                { id: "write", label: "写作" },
+                { id: "split", label: "分栏" },
+                { id: "preview", label: "预览" },
+              ].map((mode) => (
+                <button
+                  className={cn(
+                    "rounded-full px-3 py-1.5 text-xs tracking-[0.18em] transition",
+                    viewMode === mode.id
+                      ? "bg-amber-200/16 text-amber-50"
+                      : "text-stone-400 hover:bg-stone-800 hover:text-stone-100",
+                  )}
+                  key={mode.id}
+                  onClick={() => setViewMode(mode.id as EditorViewMode)}
+                  type="button"
+                >
+                  {mode.label}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {[
-              { id: "write", label: "写作" },
-              { id: "split", label: "分栏" },
-              { id: "preview", label: "预览" },
-            ].map((mode) => (
-              <button
-                className={cn(
-                  "rounded-full px-3 py-1.5 text-xs tracking-[0.18em] transition",
-                  viewMode === mode.id
-                    ? "bg-amber-200/16 text-amber-50"
-                    : "text-stone-400 hover:bg-stone-800 hover:text-stone-100",
-                )}
-                key={mode.id}
-                onClick={() => setViewMode(mode.id as EditorViewMode)}
-                type="button"
-              >
-                {mode.label}
-              </button>
-            ))}
-          </div>
+          {isToolbarOpen ? (
+            <div className="flex flex-wrap items-center gap-1.5 border-t border-stone-800 pt-3">
+              {TOOLBAR.map((action) => (
+                <button
+                  className="rounded-xl px-2.5 py-1.5 text-xs font-medium text-stone-400 transition hover:bg-stone-800 hover:text-stone-100 disabled:opacity-40"
+                  disabled={action.kind === "custom" && action.id === "image" && isUploadingImage}
+                  key={action.label}
+                  onClick={() => handleToolbarAction(action)}
+                  title={action.title}
+                  type="button"
+                >
+                  {action.icon}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-4">
-        <MetricCard label="正文字符" value={String(metrics.wordCount)} />
-        <MetricCard label="标题数量" value={String(metrics.headingCount)} />
-        <MetricCard label="段落块" value={String(metrics.paragraphCount)} />
-        <MetricCard label="预计阅读" value={`${metrics.readingMinutes} 分钟`} />
-      </div>
+      {isStatsOpen ? (
+        <div className="grid gap-3 md:grid-cols-4">
+          <MetricCard label="正文字符" value={String(metrics.wordCount)} />
+          <MetricCard label="标题数量" value={String(metrics.headingCount)} />
+          <MetricCard label="段落块" value={String(metrics.paragraphCount)} />
+          <MetricCard label="预计阅读" value={`${metrics.readingMinutes} 分钟`} />
+        </div>
+      ) : (
+        <div className="rounded-[1.5rem] border border-stone-800/80 bg-stone-950/60 px-4 py-3 text-sm text-stone-400">
+          当前正文 {metrics.wordCount} 字，约 {metrics.readingMinutes} 分钟阅读。
+        </div>
+      )}
 
       <input name={name} type="hidden" value={value} />
       <input
@@ -321,7 +349,7 @@ export function MarkdownEditor({
             <div className="flex items-center justify-between border-b border-stone-800 px-5 py-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-stone-500">写作区</p>
-                <p className="mt-1 text-sm text-stone-400">专注输入，快捷键和工具栏会作用在当前选区。</p>
+                <p className="mt-1 text-sm text-stone-400">默认进入写作态，分栏和预览按需要再打开。</p>
               </div>
               <Button onClick={() => setViewMode("preview")} type="button" variant="ghost">
                 仅看预览

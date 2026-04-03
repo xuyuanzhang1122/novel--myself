@@ -26,8 +26,8 @@ export function AdminShell({
 }) {
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(245,158,11,0.08),transparent_22%),linear-gradient(180deg,#0f0f10,#09090b)] px-4 py-4 md:px-6">
-      <div className="mx-auto grid max-w-[1760px] gap-4 lg:grid-cols-[280px_minmax(0,1fr)_320px]">
-        <aside className="h-fit rounded-[2rem] border border-stone-800 bg-stone-900/85 p-5 backdrop-blur lg:sticky lg:top-4">
+      <div className="mx-auto grid max-w-[1880px] gap-4 xl:grid-cols-[280px_minmax(0,1fr)] 2xl:grid-cols-[280px_minmax(0,1fr)_320px]">
+        <aside className="h-fit rounded-[2rem] border border-stone-800 bg-stone-900/85 p-5 backdrop-blur xl:sticky xl:top-4 xl:self-start">
           <div className="space-y-2 rounded-[1.5rem] border border-stone-800/80 bg-stone-950/70 px-4 py-4">
             <p className="text-xs uppercase tracking-[0.28em] text-stone-500">工作台</p>
             <h1 className="font-serif text-3xl tracking-tight">xu-novel</h1>
@@ -56,7 +56,7 @@ export function AdminShell({
             </form>
           </div>
         </aside>
-        <section className="rounded-[2rem] border border-stone-800 bg-stone-950/90 p-6 backdrop-blur">
+        <section className="min-w-0 rounded-[2rem] border border-stone-800 bg-stone-950/90 p-6 backdrop-blur">
           <header className="mb-8 space-y-3 rounded-[1.75rem] border border-stone-800/80 bg-stone-900/50 px-5 py-5">
             <p className="text-xs uppercase tracking-[0.28em] text-stone-500">编辑界面</p>
             <h2 className="font-serif text-4xl tracking-tight">{title}</h2>
@@ -105,7 +105,7 @@ function ControlRail() {
     navItems[0];
 
   return (
-    <aside className="h-fit rounded-[2rem] border border-stone-800 bg-stone-900/85 p-5 backdrop-blur lg:sticky lg:top-4">
+    <aside className="h-fit rounded-[2rem] border border-stone-800 bg-stone-900/85 p-5 backdrop-blur xl:col-span-2 2xl:col-span-1 2xl:sticky 2xl:top-4 2xl:self-start">
       <div className="rounded-[1.5rem] border border-stone-800/80 bg-stone-950/70 px-4 py-4">
         <p className="text-xs uppercase tracking-[0.28em] text-stone-500">当前区域</p>
         <h3 className="mt-2 font-serif text-3xl tracking-tight">{currentSection.label}</h3>

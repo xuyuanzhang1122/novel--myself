@@ -33,8 +33,8 @@ export default async function UsersPage() {
       title="用户管理"
       subtitle="创建账号、调整权限、重置密码和删除用户都放在同一个操作台里，避免来回跳页面。"
     >
-      <div className="grid gap-5 xl:grid-cols-[380px_minmax(0,1fr)]">
-        <Panel className="space-y-5 border-stone-800 bg-stone-900/70 xl:sticky xl:top-4 xl:self-start">
+      <div className="grid gap-5 2xl:grid-cols-[380px_minmax(0,1fr)]">
+        <Panel className="space-y-5 border-stone-800 bg-stone-900/70 2xl:sticky 2xl:top-4 2xl:self-start">
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.28em] text-stone-500">新增用户</p>
             <h3 className="font-serif text-3xl tracking-tight">创建账号</h3>
@@ -75,7 +75,7 @@ export default async function UsersPage() {
           </div>
         </Panel>
 
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <div className="grid gap-4 md:grid-cols-4">
             {[
               ["总用户数", String(users.length)],
@@ -102,8 +102,8 @@ export default async function UsersPage() {
                   className="rounded-[1.8rem] border border-stone-800 bg-stone-950/75 p-5 transition hover:border-stone-700 hover:bg-stone-950"
                   key={item.id}
                 >
-                  <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-                    <div className="space-y-2">
+                  <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_360px]">
+                    <div className="min-w-0 space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <h4 className="font-serif text-2xl tracking-tight">{item.email}</h4>
                         <span className="rounded-full border border-stone-700 px-3 py-1 text-xs uppercase tracking-[0.2em] text-stone-400">
@@ -123,7 +123,7 @@ export default async function UsersPage() {
                       </p>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="min-w-0 space-y-3">
                       <FormWithError
                         action={updateUserRoleAction}
                         className="space-y-3 rounded-[1.4rem] border border-stone-800/80 bg-stone-900/60 p-4"

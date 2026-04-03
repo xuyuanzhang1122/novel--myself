@@ -74,7 +74,7 @@ export function ImportDocxForm() {
   }, [preview]);
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[420px_minmax(0,1fr)]">
+    <div className="grid gap-5 2xl:grid-cols-[420px_minmax(0,1fr)]">
       <Panel className="min-w-0 space-y-5 border-stone-800 bg-stone-900/70">
         <div className="space-y-2">
           <p className="text-xs uppercase tracking-[0.28em] text-stone-500">导入入口</p>
@@ -140,7 +140,7 @@ export function ImportDocxForm() {
         ) : null}
       </Panel>
 
-      <div className="space-y-5">
+      <div className="min-w-0 space-y-5">
         <div className="grid gap-4 md:grid-cols-3">
           {[
             ["正文字符", String(metrics.wordCount)],

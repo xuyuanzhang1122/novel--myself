@@ -21,8 +21,8 @@ export default async function AppearancePage() {
       title="外观"
       subtitle="品牌文案、Hero 结构和默认阅读风格，都应该边看预览边改，而不是盲填字段。"
     >
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_400px]">
-        <Panel className="space-y-5 border-stone-800 bg-stone-900/70">
+      <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_400px]">
+        <Panel className="min-w-0 space-y-5 border-stone-800 bg-stone-900/70">
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.28em] text-stone-500">前台配置</p>
             <h3 className="font-serif text-3xl tracking-tight">更新品牌与首页氛围</h3>
@@ -131,7 +131,7 @@ export default async function AppearancePage() {
           </FormWithError>
         </Panel>
 
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-5">
           <Panel className="space-y-4 border-stone-800 bg-stone-900/70">
             <p className="text-xs uppercase tracking-[0.28em] text-stone-500">前台预览</p>
             <div

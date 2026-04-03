@@ -27,32 +27,32 @@ export function AuthStage({
     viewMode === "login" ? 3 : isRegistered ? 3 : hasCode ? 2 : hasEmail ? 1 : 0;
 
   const title =
-    viewMode === "register" ? "注册就该一屏完成。" : "不用绕路，直接继续读。";
+    viewMode === "register" ? "立即开启" : "继续阅读";
   const description =
     viewMode === "register"
-      ? "这里不是说明书。邮箱、验证码、密码，完成后直接进入书库。"
-      : "已有账号的话，只保留一件事: 输入邮箱和密码，然后回到阅读。";
+      ? "使用邮箱验证码完成注册，进入后就能开始阅读、收藏和管理书架。"
+      : "登录后直接进入书库，继续上次的阅读进度。";
   const statusText =
     viewMode === "register"
       ? isRegistered
-        ? "账号已解锁，正在进入书库。"
+        ? "注册完成，正在进入书库。"
         : hasCode
           ? sendCooldown > 0
-            ? `${sendCooldown} 秒后可重新发送验证码。`
-            : "验证码已送达，等待完成验证。"
+            ? `验证码已发送，${sendCooldown} 秒后可重新获取。`
+            : "验证码已发送，可以填写验证码并设置密码。"
           : hasEmail
-            ? "邮箱已准备好，可以发送验证码。"
-            : "先输入一个能接收邮件的地址。"
-      : "输入邮箱和密码后即可回到书库。";
+            ? "邮箱已填写，可以发送验证码。"
+            : "先输入常用邮箱。"
+      : "输入邮箱和密码后即可进入书库。";
   const centerLabel =
     viewMode === "register"
       ? isRegistered
-        ? "已验证"
+        ? "已完成"
         : hasCode
           ? "验证码"
           : hasEmail
-            ? "待发码"
-            : "邮箱"
+            ? "发码"
+            : "注册"
       : "登录";
   const centerWord =
     viewMode === "register"
@@ -61,19 +61,19 @@ export function AuthStage({
         : hasCode
           ? "验证"
           : hasEmail
-            ? "准备"
-            : "输入"
-      : "回到";
+            ? "发送"
+            : "开启"
+      : "返回";
   const centerDescription =
     viewMode === "register"
       ? isRegistered
-        ? "账号已准备完成跳转。"
+        ? "账号已创建，正在完成跳转。"
         : hasCode
-          ? "填入验证码与密码。"
+          ? "填写验证码并设置登录密码。"
           : hasEmail
-            ? "右侧按钮现在可以发码。"
-            : "先从邮箱开始。"
-      : "邮箱和密码通过后，直接进入书库。";
+            ? "下一步发送验证码。"
+            : "从邮箱开始创建账号。"
+      : "完成登录后直接回到阅读。";
   const steps =
     viewMode === "register"
       ? ["邮箱", "验证码", "进入书库"]
@@ -241,14 +241,14 @@ export function AuthStage({
           <div className="flex flex-col gap-3 rounded-[1.4rem] border border-white/10 bg-black/20 px-4 py-4 backdrop-blur sm:flex-row sm:items-center">
             <div className="min-w-0 flex-1">
               <p className="text-[11px] uppercase tracking-[0.24em] text-stone-500">
-                {viewMode === "register" ? "收件邮箱" : "当前入口"}
+                {viewMode === "register" ? "收件邮箱" : "登录方式"}
               </p>
               <p className="mt-2 truncate text-sm text-stone-100">
                 {viewMode === "register"
                   ? hasEmail
                     ? normalizedEmail
                     : "还没有填写邮箱"
-                  : "已有账号，直接登录"}
+                  : "邮箱与密码登录"}
               </p>
             </div>
             <div className="h-px w-full bg-white/10 sm:h-10 sm:w-px" />

@@ -97,12 +97,12 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
           <div className="space-y-2">
             <p className="text-[11px] uppercase tracking-[0.3em] text-stone-500">账号入口</p>
             <h2 className="font-serif text-3xl tracking-tight text-stone-50 sm:text-[2.4rem]">
-              {viewMode === "register" ? "完成注册" : "进入书库"}
+              {viewMode === "register" ? "立即注册" : "立即登录"}
             </h2>
             <p className="text-sm leading-7 text-stone-300">
               {viewMode === "register"
-                ? "把邮箱、验证码和密码填完就结束，不再额外讲故事。"
-                : "已有账号直接登录，新账号切到注册页拿验证码。"}
+                ? "新用户使用邮箱验证码完成注册，注册后直接进入书库。"
+                : "已有账号直接登录，进入后继续阅读。"}
             </p>
           </div>
 
@@ -159,8 +159,8 @@ function LoginCard({
   return (
     <>
       <div className="space-y-2">
-        <p className="text-[11px] uppercase tracking-[0.3em] text-stone-500">登录</p>
-        <p className="text-sm leading-7 text-stone-300">邮箱和密码通过后，直接回到书库。</p>
+        <p className="text-[11px] uppercase tracking-[0.3em] text-stone-500">立即登录</p>
+        <p className="text-sm leading-7 text-stone-300">使用邮箱和密码登录，进入后继续阅读。</p>
       </div>
 
       <form action={loginFormAction} className="space-y-3.5">
@@ -185,7 +185,7 @@ function LoginCard({
         <SubmitButton
           className="w-full rounded-[1.35rem] py-3.5"
           pendingText="登录中..."
-          text="登录进入书库"
+          text="立即登录"
         />
       </form>
 
@@ -246,7 +246,7 @@ function RegisterCard({
           ))}
         </div>
         <p className="text-sm leading-7 text-stone-300">
-          输入邮箱，先拿验证码，再设置密码。完成后直接进入书库。
+          使用邮箱验证码完成注册，注册后直接进入书库。
         </p>
       </div>
 
@@ -325,7 +325,7 @@ function RegisterCard({
             className="w-full rounded-[1.35rem] py-3.5"
             disabled={!hasEmail}
             pendingText="注册中..."
-            text="完成注册并进入书库"
+            text="立即注册"
           />
         </form>
       </div>
